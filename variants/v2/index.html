@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html class="variant-embed" lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=360, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <title>V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v=24" />
+</head>
+<body class="variant-embed">
+  <div class="phone" id="phone">
+    <div class="status-bar" id="statusBar">
+      <div class="status-time-wrap"><span class="status-time">8:00</span></div>
+      <div class="status-icons" aria-hidden="true">
+        <div class="status-network">
+          <img class="status-wifi" src="../../shared/assets/icons/status_wifi.svg" width="16" height="16" alt="" />
+          <img class="status-signal" src="../../shared/assets/icons/status_signal.svg" width="16" height="16" alt="" />
+        </div>
+        <img class="status-battery" src="../../shared/assets/icons/status_battery.svg" width="16" height="16" alt="" />
+      </div>
+    </div>
+    <div id="flowRoot" class="flow-root">
+      
+      <div id="layer-feed" class="flow-layer flow-layer-feed" data-route="feed">
+        <div class="feed-video">
+          <video id="feedVideo" class="feed-video-media" src="../../shared/assets/video/feed_video_01.mp4" autoplay muted loop playsinline disablePictureInPicture preload="auto" aria-hidden="true"></video>
+        </div>
+        <div class="feed-gradient"></div>
+        <div class="feed-top-bar">
+          <button class="feed-icon-btn" type="button" aria-label="Live">
+            <img class="feed-icon-template" src="../../shared/assets/icons/feed/icon_live_entrance.png" width="24" height="24" alt="" /></button>
+          <div class="feed-tabs">
+            <button type="button" class="feed-tab" data-feed-tab="following"><span>Following</span><span class="feed-tab-badge"></span></button>
+            <button type="button" class="feed-tab" data-feed-tab="friends"><span>Friends</span></button>
+            <button type="button" class="feed-tab active" data-feed-tab="foryou"><span>For You</span></button>
+          </div>
+          <button class="feed-icon-btn" type="button" aria-label="Search">
+            <img class="feed-icon-template" src="../../shared/assets/icons/feed/icon_magnifying_glass.png" width="24" height="24" alt="" /></button>
+        </div>
+        <div class="feed-interaction">
+          <div class="feed-avatar-section">
+            <div class="feed-avatar-wrap">
+              <div class="feed-avatar-ring"><img class="feed-avatar" src="../../shared/assets/images/feed_avatar.png" alt="" /></div>
+              <img class="feed-follow" src="../../shared/assets/icons/feed_follow.svg" width="28" height="20" alt="" /></div></div>
+          <div class="feed-action feed-action-like"><img class="feed-action-icon" src="../../shared/assets/icons/feed/icon_color_like_shadow.png" width="32" height="32" alt="" /><span class="feed-action-label">991K</span></div>
+          <div class="feed-action feed-action-comment"><img class="feed-action-icon" src="../../shared/assets/icons/feed/icon_color_comment_shadow.png" width="32" height="32" alt="" /><span class="feed-action-label">3456</span></div>
+          <div class="feed-action feed-action-share"><img class="feed-action-icon" src="../../shared/assets/icons/feed/icon_color_share_shadow.png" width="32" height="32" alt="" /><span class="feed-action-label">1256</span></div>
+          <div class="feed-music-section"><img class="feed-music-disk" src="../../shared/assets/images/feed_music_disk.png" width="40" height="40" alt="" /></div>
+        </div>
+        <div class="feed-info">
+          <div class="feed-username">jennybush</div>
+          <div class="feed-caption">Beautiful sunset vibes 🌅 #fyp</div>
+          <div class="feed-translation">See translation</div>
+          <div class="feed-sound-row">
+            <img class="feed-icon-template" src="../../shared/assets/icons/feed/icon_music_note_s.png" width="16" height="16" alt="" />
+            <span>original sound - jennybush</span></div>
+        </div>
+        <div class="feed-bottom-nav" data-name="Bottom Nav Bar" data-figma="3401:2306"><button type="button" class="feed-nav-cell active" data-feed-nav="home"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/nav_home_outline.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/story-lite-3401/feed_home_active.svg" alt="" /></span><span class="feed-nav-label">Home</span></button><button type="button" class="feed-nav-cell" data-feed-nav="explore"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/story-lite-3401/feed_explore_inactive.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/nav_explore_selected.svg" alt="" /></span><span class="feed-nav-label">Explore</span></button><button id="feedCreateBtn" type="button" class="feed-nav-create" data-feed-nav="create" aria-label="Create"><span class="feed-nav-create-frame"><img src="../../shared/assets/icons/feed/figma/story-lite-3401/feed_create.svg" alt="" /></span></button><button type="button" class="feed-nav-cell" data-feed-nav="inbox" id="feedInboxBtn"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/story-lite-3401/feed_inbox_inactive.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/nav_inbox_selected.svg" alt="" /></span><span class="feed-nav-label">Inbox</span></button><button type="button" class="feed-nav-cell" data-feed-nav="me"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/story-lite-3401/feed_me_inactive.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/nav_me_selected.svg" alt="" /></span><span class="feed-nav-label">Me</span></button></div>
+      </div>
+      
+      <div id="layer-inbox" class="flow-layer flow-layer-inbox" data-route="inbox">
+        
+        <div class="inbox-navbar">
+          <button type="button" class="inbox-nav-tap" aria-label="New"><img src="../../shared/assets/inbox/inbox_nav_circle_plus.png" width="24" height="24" alt="" /></button>
+          <div class="inbox-nav-center">
+            <span class="inbox-nav-title">Inbox</span>
+            <span class="inbox-account-chip">
+              <img src="../../shared/assets/inbox/inbox_account_status_dot.png" width="8" height="8" alt="" />
+              <img src="../../shared/assets/inbox/inbox_account_chevron.png" width="8" height="8" alt="" /></span></div>
+          <div class="inbox-nav-tap-spacer"></div></div>
+        <div id="inboxContent" class="inbox-content">
+          <div id="inboxRevealRoot" class="inbox-reveal-root">
+            <div id="storyRefreshIndicator" class="story-refresh-indicator" aria-hidden="true">
+              <div class="tux-dualball" data-refresh-ball>
+                <span class="tux-dualball-dot tux-dualball-dot-a"></span>
+                <span class="tux-dualball-dot tux-dualball-dot-b"></span>
+              </div>
+            </div>
+            <div id="storyRevealSlot" class="story-reveal-slot"><div class="skylight-row" id="skylightRow"><button type="button" class="skylight-item" data-skylight-action="create"><span class="skylight-avatar-slot"><img class="skylight-create-bg" src="../../shared/assets/inbox/inbox_story_create.png" alt="" /><span class="skylight-plus-badge"><img class="skylight-plus-icon" src="../../shared/assets/inbox/inbox_story_plus.png" alt="" /><img class="skylight-plus-stroke" src="../../shared/assets/inbox/inbox_story_plus_stroke.png" alt="" /></span></span><span class="skylight-label">Create</span></button><button type="button" class="skylight-item" data-story-label="Lindsey"><span class="skylight-avatar-slot"><img class="skylight-ring" src="../../shared/assets/inbox/inbox_story_ring.png" alt="" /><img class="skylight-avatar" src="../../shared/assets/inbox/inbox_story_lindsey.png" alt="Lindsey" /></span><span class="skylight-label">Lindsey</span></button><button type="button" class="skylight-item" data-story-label="Maren"><span class="skylight-avatar-slot"><img class="skylight-ring" src="../../shared/assets/inbox/inbox_story_ring.png" alt="" /><img class="skylight-avatar" src="../../shared/assets/inbox/inbox_story_maren.png" alt="Maren" /></span><span class="skylight-label">Maren</span></button><button type="button" class="skylight-item" data-story-label="Alena"><span class="skylight-avatar-slot"><img class="skylight-ring" src="../../shared/assets/inbox/inbox_story_ring.png" alt="" /><img class="skylight-avatar" src="../../shared/assets/inbox/inbox_story_alena.png" alt="Alena" /></span><span class="skylight-label">Alena</span></button><button type="button" class="skylight-item" data-story-label="Rayna"><span class="skylight-avatar-slot"><img class="skylight-ring" src="../../shared/assets/inbox/inbox_story_ring.png" alt="" /><img class="skylight-avatar" src="../../shared/assets/inbox/inbox_story_rayna.png" alt="Rayna" /></span><span class="skylight-label">Rayna</span></button></div></div>
+            <div id="storyReleaseHint" class="story-release-hint" aria-hidden="true">Release to show story</div>
+            <div id="inboxListLayer" class="inbox-list-layer">
+              <div id="inboxScroll" class="inbox-scroll"><div class="inbox-cell"><div class="inbox-leading inbox-leading-cat" style="background:#00ABF4"><img src="../../shared/assets/inbox/inbox_category_followers_icon.png" width="28" height="28" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">New Followers</div><div class="inbox-msg"><span>Rhianna started following you.</span></div></div><div class="inbox-cell-trailing"><span class="inbox-badge">9</span></div></div><div class="inbox-cell"><div class="inbox-leading inbox-leading-cat" style="background:#FF3B76"><img src="../../shared/assets/inbox/inbox_category_activity_icon.png" width="28" height="28" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">Activity</div><div class="inbox-msg"><span>Jaela liked your video.</span></div></div><div class="inbox-cell-trailing"><span class="inbox-badge">1</span></div></div><div class="inbox-cell"><div class="inbox-leading inbox-leading-cat" style="background:#32364B"><img src="../../shared/assets/inbox/inbox_category_system_icon.png" width="28" height="28" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">System notifications</div><div class="inbox-msg"><span>TikTok:Updates to your post performance</span><span class="inbox-ts-gap"><img src="../../shared/assets/inbox/inbox_timestamp_dot.png" width="2" height="2" alt="" /><span class="inbox-ts">1h</span></span></div></div><div class="inbox-cell-trailing"><span class="inbox-badge">1</span></div></div><div class="inbox-cell"><div class="inbox-leading inbox-leading-cat" style="background:#0075DC"><img src="../../shared/assets/inbox/inbox_category_partners_icon.png" width="28" height="28" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">Featured partners</div><div class="inbox-msg"><span>Here comes a new brand{brand_name}</span><span class="inbox-ts-gap"><img src="../../shared/assets/inbox/inbox_timestamp_dot.png" width="2" height="2" alt="" /><span class="inbox-ts">1h</span></span></div></div><div class="inbox-cell-trailing"><span class="inbox-badge">1</span></div></div><div class="inbox-cell"><div class="inbox-leading inbox-leading-avatar"><img class="inbox-avatar-img" src="../../shared/assets/inbox/inbox_avatar_cenis.png" alt="" /><img class="inbox-avatar-border" src="../../shared/assets/inbox/inbox_avatar_border.png" alt="" /><img class="inbox-online-dot" src="../../shared/assets/inbox/inbox_avatar_online_dot.png" width="16" height="16" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">Cenis Grimm</div><div class="inbox-msg"><span>Hello how r u recently</span><span class="inbox-ts-gap"><img src="../../shared/assets/inbox/inbox_timestamp_dot.png" width="2" height="2" alt="" /><span class="inbox-ts">1h</span></span></div></div><div class="inbox-cell-trailing"><span class="inbox-badge">1</span></div></div><div class="inbox-cell"><div class="inbox-leading inbox-leading-avatar"><img class="inbox-avatar-img" src="../../shared/assets/inbox/inbox_avatar_tommy.png" alt="" /><img class="inbox-avatar-border" src="../../shared/assets/inbox/inbox_avatar_border.png" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title inbox-title-semibold">Tommy Tang</div><div class="inbox-msg inbox-msg-regular"><span>Hello how r u recently</span><span class="inbox-ts-gap"><img src="../../shared/assets/inbox/inbox_timestamp_dot.png" width="2" height="2" alt="" /><span class="inbox-ts">1h</span></span></div></div><div class="inbox-cell-trailing"></div></div><div class="inbox-cell"><div class="inbox-leading inbox-leading-avatar"><img class="inbox-avatar-img" src="../../shared/assets/inbox/inbox_avatar_summer.png" alt="" /><img class="inbox-avatar-border" src="../../shared/assets/inbox/inbox_avatar_border.png" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title inbox-title-semibold">summer</div><div class="inbox-msg inbox-msg-regular"><span>Hello how r u recently</span><span class="inbox-ts-gap"><img src="../../shared/assets/inbox/inbox_timestamp_dot.png" width="2" height="2" alt="" /><span class="inbox-ts">1h</span></span></div></div><div class="inbox-cell-trailing"></div></div><div class="inbox-section-title"><span>Suggested account</span><img src="../../shared/assets/inbox/inbox_section_info.png" width="12" height="12" alt="" /></div><div class="inbox-cell inbox-suggested"><div class="inbox-leading inbox-leading-avatar suggested"><img class="inbox-avatar-img" src="../../shared/assets/inbox/inbox_suggested_duck.png" alt="" /><img class="inbox-avatar-border" src="../../shared/assets/inbox/inbox_avatar_border.png" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">🦆🦆</div><div class="inbox-suggested-sub"><span>Friends with</span><span class="inbox-stack"><img class="inbox-stack-av" src="../../shared/assets/inbox/inbox_stack_avatar_1.png" alt="" /><img class="inbox-stack-av" src="../../shared/assets/inbox/inbox_stack_avatar_2.png" alt="" /><span class="inbox-stack-overflow"><img src="../../shared/assets/inbox/inbox_stack_overflow.png" alt="" /><span>+6</span></span></span></div></div><div class="inbox-suggested-actions"><button type="button" class="inbox-follow-btn">Follow</button><span class="inbox-suggested-dismiss" aria-label="Dismiss"><img src="../../shared/assets/inbox/inbox_dismiss_x.svg" width="16" height="16" alt="" /></span></div></div><div class="inbox-cell inbox-suggested"><div class="inbox-leading inbox-leading-avatar suggested"><img class="inbox-avatar-img" src="../../shared/assets/inbox/inbox_suggested_sunsun.png" alt="" /><img class="inbox-avatar-border" src="../../shared/assets/inbox/inbox_avatar_border.png" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">Sunsun77</div><div class="inbox-suggested-sub"><span>Follows</span><span class="inbox-stack"><img class="inbox-stack-av" src="../../shared/assets/inbox/inbox_stack_avatar_1.png" alt="" /><img class="inbox-stack-av" src="../../shared/assets/inbox/inbox_stack_avatar_2.png" alt="" /><img class="inbox-stack-av" src="../../shared/assets/inbox/inbox_stack_avatar_3.png" alt="" /></span></div></div><div class="inbox-suggested-actions"><button type="button" class="inbox-follow-btn">Follow</button><span class="inbox-suggested-dismiss" aria-label="Dismiss"><img src="../../shared/assets/inbox/inbox_dismiss_x.svg" width="16" height="16" alt="" /></span></div></div><div class="inbox-cell inbox-suggested"><div class="inbox-leading inbox-leading-avatar suggested"><img class="inbox-avatar-img" src="../../shared/assets/inbox/inbox_suggested_wanda.png" alt="" /><img class="inbox-avatar-border" src="../../shared/assets/inbox/inbox_avatar_border.png" alt="" /></div><div class="inbox-cell-body"><div class="inbox-cell-title">wanda</div><div class="inbox-suggested-sub plain">You may know Wang</div></div><div class="inbox-suggested-actions"><button type="button" class="inbox-follow-btn">Follow</button><span class="inbox-suggested-dismiss" aria-label="Dismiss"><img src="../../shared/assets/inbox/inbox_dismiss_x.svg" width="16" height="16" alt="" /></span></div></div></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="inbox-bottom-nav" data-name="Bottom Nav Bar" data-figma="3401:2342">
+          <button type="button" class="feed-nav-cell" data-feed-nav="home" data-inbox-nav="home"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/story-lite-3401/inbox_home_inactive.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/nav_home_selected.svg" alt="" /></span><span class="feed-nav-label">Home</span></button>
+          <button type="button" class="feed-nav-cell" data-feed-nav="explore"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/story-lite-3401/inbox_explore_inactive.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/nav_explore_selected.svg" alt="" /></span><span class="feed-nav-label">Explore</span></button>
+          <button type="button" class="feed-nav-create" data-feed-nav="create" aria-label="Create"><span class="feed-nav-create-frame"><img src="../../shared/assets/icons/feed/figma/story-lite-3401/inbox_create.svg" alt="" /></span></button>
+          <button type="button" class="feed-nav-cell active" data-feed-nav="inbox" data-inbox-nav="inbox"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/nav_inbox_outline.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/story-lite-3401/inbox_inbox_active.svg" alt="" /></span><span class="feed-nav-label">Inbox</span></button>
+          <button type="button" class="feed-nav-cell" data-feed-nav="me"><span class="feed-nav-icon"><img class="icon-outline" src="../../shared/assets/icons/feed/figma/story-lite-3401/inbox_me_inactive.svg" alt="" /><img class="icon-fill" src="../../shared/assets/icons/feed/figma/nav_me_selected.svg" alt="" /></span><span class="feed-nav-label">Me</span></button>
+        </div>
+      </div>
+    </div>
+    
+      <div id="storyAddSheet" class="story-add-sheet" hidden>
+        <div class="story-add-nav">
+          <button type="button" id="storyAddClose" class="story-add-nav-btn" aria-label="Close">
+            <img src="../../shared/assets/figma/story_preview_close.svg" width="24" height="24" alt="" />
+          </button>
+          <span class="story-add-title">Add to Story</span>
+          <button type="button" id="storyAddCameraNav" class="story-add-nav-camera" hidden aria-label="Camera">
+            <img src="../../shared/assets/figma/story_add_camera.svg" width="24" height="24" alt="" />
+          </button>
+        </div>
+        <div id="storyAddScroll" class="story-add-scroll">
+          <div class="story-add-camera-section">
+            <div class="story-add-camera-card">
+              <img src="../../shared/assets/figma/story_add_camera.svg" width="28" height="28" alt="" />
+              <span>Camera</span>
+            </div>
+          </div>
+          <div class="story-add-recents">
+            <span>Recents</span>
+            <img src="../../shared/assets/figma/story_add_chevron.svg" width="16" height="16" alt="" />
+          </div>
+          <div class="story-add-tabs">
+            <button class="active" type="button">All</button>
+            <button type="button">Photos</button>
+            <button type="button">Videos</button>
+          </div>
+          <div class="story-add-grid"><div class="story-add-grid-row"><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_01.jpg" alt="" /><span class="story-add-duration">00:07</span></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_02.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_03.jpg" alt="" /></div></div><div class="story-add-grid-row"><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_04.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_05.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_06.jpg" alt="" /></div></div><div class="story-add-grid-row"><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_07.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_08.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_09.jpg" alt="" /></div></div><div class="story-add-grid-row"><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_10.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_11.jpg" alt="" /></div><div class="story-add-tile"><img src="../../shared/assets/figma/story_add_grid_12.jpg" alt="" /></div></div></div>
+        </div>
+        <div class="story-add-footer">
+          <div class="story-add-select">
+            <img class="story-add-checkbox" src="../../shared/assets/figma/story_add_checkbox.svg" width="24" height="24" alt="" />
+            <span>Multiple select</span>
+          </div>
+          <div class="story-add-home-spacer" aria-hidden="true"></div>
+        </div>
+      </div>
+    
+      <div id="storyPreview" class="story-preview" hidden>
+        <div class="story-preview-screen">
+          <div id="storyPhotoWrap" class="story-photo-wrap">
+            <img id="storyPhoto" src="" alt="" />
+            <img class="story-photo-overlay-top" src="../../shared/assets/figma/story_preview_top_overlay.svg" alt="" />
+            <div class="story-tap-zones">
+              <button type="button" id="storyTapPrev" class="story-tap-prev" aria-label="Previous"></button>
+              <button type="button" id="storyTapNext" class="story-tap-next" aria-label="Next"></button>
+            </div>
+          </div>
+          <div class="story-preview-top-ui">
+            <div id="storyProgressRow" class="story-progress-row"></div>
+            <div class="story-preview-topbar">
+              <div class="story-preview-header">
+                <img id="storyPreviewAvatar" class="story-preview-avatar" src="" alt="" />
+                <div class="story-preview-meta">
+                  <span id="storyPreviewName"></span><span id="storyPreviewTime">· 3h ago</span>
+                </div>
+              </div>
+              <div class="story-preview-actions">
+                <img class="story-preview-camera" src="../../shared/assets/figma/story_preview_camera.svg" width="24" height="24" alt="" />
+                <button type="button" id="storyPreviewClose" class="story-preview-close" aria-label="Close">
+                  <img src="../../shared/assets/figma/story_preview_close.svg" width="24" height="24" alt="" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="story-preview-interaction">
+          <div class="story-dm-row">
+            <div class="story-message-bubble">
+              <span class="story-message-text">Message....</span>
+              <div class="story-message-emojis" aria-hidden="true">
+                <span>😍</span><span>😂</span><span>😳</span>
+              </div>
+            </div>
+            <div class="story-preview-actions-row">
+              <img src="../../shared/assets/figma/story_preview_like.svg" width="28" height="28" alt="" />
+              <img src="../../shared/assets/figma/story_preview_share.svg" width="28" height="28" alt="" />
+            </div>
+          </div>
+        </div>
+      </div>
+    <div class="system-home-indicator" data-name="System/Home Indicator" data-figma="3285:55821" aria-hidden="true"><div class="system-home-indicator-handle"></div></div>
+  </div>
+  <script>window.__SKYLIGHT_VARIANT__ = {"expandMs": 450, "collapseMs": 350, "storySlideMs": 300, "settleBackMs": 250, "autoExpandDelayMs": 400, "pushFlingVelocity": 1500, "pullDamping": 0.65, "pushThreshold": 16, "maxHeight": 118, "refreshThreshold": 32, "refreshIndicatorHeight": 56, "refreshMaxPullDistance": 56, "refreshDurationMs": 1200, "tabCrossfadeMs": 150, "storyDurationMs": 3500, "previewEnterMs": 180, "previewExitMs": 150, "photoCrossfadeMs": 250, "storyAddEnterMs": 320, "storyAddExitMs": 260, "effectCoverLoadMs": 1200, "albumEmergenceMs": 160, "label": "V2", "pullThreshold": 0, "maxPullDistance": 118, "expandOnDrag": true, "storySlideEnabled": false, "autoExpandOnEnter": true, "startExpanded": false, "topDownStoryRevealEnabled": false, "lockStoryExpanded": false, "chainRefreshAfterExpand": true, "releaseHintEnabled": false, "id": "v2", "startOnFeed": true};
+window.__STORY_PREVIEWS__ = {"Lindsey": {"avatar": "inbox_story_lindsey.png", "timeText": "3h ago", "photos": ["lindsey_story_photo_1.png", "lindsey_story_photo_2.png", "lindsey_story_photo_3.png", "lindsey_story_photo_4.png"]}, "Maren": {"avatar": "inbox_story_maren.png", "photos": ["maren_story_photo_1.jpg", "maren_story_photo_2.jpg", "maren_story_photo_3.jpg"]}, "Alena": {"avatar": "inbox_story_alena.png", "photos": ["alena_story_photo_1.jpg", "alena_story_photo_2.jpg", "alena_story_photo_3.jpg"]}, "Rayna": {"avatar": "inbox_story_rayna.png", "photos": ["rayna_story_photo_1.jpg", "rayna_story_photo_2.jpg", "rayna_story_photo_3.jpg"]}};</script>
+  <script src="../../shared/skylight-core.js?v=72"></script>
+</body>
+</html>

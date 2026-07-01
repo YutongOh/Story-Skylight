@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="xMidYMid meet" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 360 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path id="Top-Overlay" opacity="0.631798" fill-rule="evenodd" clip-rule="evenodd" d="M0 0H360V136H0V0Z" fill="url(#paint0_linear_0_312)"/>
+<defs>
+<linearGradient id="paint0_linear_0_312" x1="4.66359" y1="0" x2="4.66359" y2="132.476" gradientUnits="userSpaceOnUse">
+<stop stop-opacity="0.4"/>
+<stop offset="1" stop-opacity="0.01"/>
+</linearGradient>
+</defs>
+</svg>
