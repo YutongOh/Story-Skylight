@@ -213,7 +213,7 @@ FIGMA_ASSETS = {
     "figma/story_add_grid_12.jpg": "https://www.figma.com/api/mcp/asset/d31c1a53-d4df-4399-b20f-70a96cd333a1",
     "icons/feed/figma/story-lite/nav_create_dark.svg": "https://www.figma.com/api/mcp/asset/f8bf2513-a8e2-465f-941b-a0943247ba07",
     "icons/feed/figma/story-lite/nav_create_light.svg": "https://www.figma.com/api/mcp/asset/e4ee4ef9-a6f0-4657-984b-5e757a57ad1f",
-    # Bottom nav — Figma 3401:2306 (Feed dark) & 3401:2342 (Inbox light)
+    # Bottom nav — TUX Bottom Nav Bar (3391:30629); V1 inbox instance 3428:6030
     "icons/feed/figma/story-lite-3401/feed_home_active.svg": "https://www.figma.com/api/mcp/asset/34bff558-0740-43b1-b8a2-ed74d456b927",
     "icons/feed/figma/story-lite-3401/feed_explore_inactive.svg": "https://www.figma.com/api/mcp/asset/516c8228-a05b-41ec-9a6e-b93dd63aa945",
     "icons/feed/figma/story-lite-3401/feed_inbox_inactive.svg": "https://www.figma.com/api/mcp/asset/b61bd351-401e-400e-87e9-a4e6cfb5691f",
@@ -223,7 +223,7 @@ FIGMA_ASSETS = {
     "icons/feed/figma/story-lite-3401/inbox_explore_inactive.svg": "https://www.figma.com/api/mcp/asset/190d8552-77b4-4a66-b138-9e8af88b8237",
     "icons/feed/figma/story-lite-3401/inbox_inbox_active.svg": "https://www.figma.com/api/mcp/asset/a0db6b74-54a5-439b-b3e2-246d334a0b1f",
     "icons/feed/figma/story-lite-3401/inbox_me_inactive.svg": "https://www.figma.com/api/mcp/asset/c606f9c4-dfb2-4924-9e25-24385ec5f4da",
-    "icons/feed/figma/story-lite-3401/inbox_create.svg": "https://www.figma.com/api/mcp/asset/d9b3e7a0-b179-40f4-a364-6e2649323f3f",
+    "icons/feed/figma/story-lite-3401/inbox_create.svg": "https://www.figma.com/api/mcp/asset/6f501327-2612-47bc-be46-ecbda80dc5be",
     "inbox/inbox_section_info.png": "https://www.figma.com/api/mcp/asset/a90a41d1-b6f0-4feb-a58d-e89dc658da07",
 }
 
@@ -265,7 +265,8 @@ def download_figma_assets() -> None:
     for rel, url in FIGMA_ASSETS.items():
         out = SHARED / "assets" / rel
         out.parent.mkdir(parents=True, exist_ok=True)
-        if out.is_file() and out.stat().st_size > 100:
+        force = SL3401 in rel
+        if out.is_file() and out.stat().st_size > 100 and not force:
             if rel.endswith(".svg"):
                 _normalize_figma_svg(out)
             continue
@@ -418,22 +419,20 @@ def inbox_cells_html() -> str:
     return cells + section + suggested
 
 
-def nav_icon_cell(label: str, outline: str, fill: str, *, active: bool = False, extra_class: str = "", attrs: str = "") -> str:
+def nav_lite_cell(label: str, icon: str, *, active: bool = False, attrs: str = "") -> str:
+    """Story Lite bottom nav cell — single TUX tab icon per state."""
     a = asset
     tab_id = {"Home": "home", "Explore": "explore", "Inbox": "inbox", "Me": "me"}[label]
     cls = "feed-nav-cell"
     if active:
         cls += " active"
-    if extra_class:
-        cls += f" {extra_class}"
     nav_attrs = f'data-feed-nav="{tab_id}"'
     if attrs:
         nav_attrs += f" {attrs}"
     return (
         f'<button type="button" class="{cls}" {nav_attrs}>'
-        f'<span class="feed-nav-icon">'
-        f'<img class="icon-outline" src="{a(f"icons/feed/figma/{outline}")}" alt="" />'
-        f'<img class="icon-fill" src="{a(f"icons/feed/figma/{fill}")}" alt="" />'
+        f'<span class="feed-nav-icon feed-nav-icon--lite">'
+        f'<img src="{a(f"icons/feed/figma/{icon}")}" alt="" />'
         f'</span><span class="feed-nav-label">{label}</span></button>'
     )
 
@@ -453,11 +452,11 @@ def feed_create_btn(*, btn_id: str = "feedCreateBtn", variant: str = "feed") -> 
 def feed_html() -> str:
     a = asset
     nav = (
-        nav_icon_cell("Home", "nav_home_outline.svg", f"{SL3401}/feed_home_active.svg", active=True)
-        + nav_icon_cell("Explore", f"{SL3401}/feed_explore_inactive.svg", "nav_explore_selected.svg")
+        nav_lite_cell("Home", f"{SL3401}/feed_home_active.svg", active=True)
+        + nav_lite_cell("Explore", f"{SL3401}/feed_explore_inactive.svg")
         + feed_create_btn()
-        + nav_icon_cell("Inbox", f"{SL3401}/feed_inbox_inactive.svg", "nav_inbox_selected.svg", attrs='id="feedInboxBtn"')
-        + nav_icon_cell("Me", f"{SL3401}/feed_me_inactive.svg", "nav_me_selected.svg")
+        + nav_lite_cell("Inbox", f"{SL3401}/feed_inbox_inactive.svg", attrs='id="feedInboxBtn"')
+        + nav_lite_cell("Me", f"{SL3401}/feed_me_inactive.svg")
     )
     return f"""
       <div id="layer-feed" class="flow-layer flow-layer-feed" data-route="feed">
@@ -494,14 +493,14 @@ def feed_html() -> str:
             <img class="feed-icon-template" src="{a('icons/feed/icon_music_note_s.png')}" width="16" height="16" alt="" />
             <span>original sound - jennybush</span></div>
         </div>
-        <div class="feed-bottom-nav" data-name="Bottom Nav Bar" data-figma="3401:2306">{nav}</div>
+        <div class="feed-bottom-nav" data-name="Bottom Nav Bar" data-figma="3391:30629">{nav}</div>
       </div>"""
 
 
 def inbox_layer_html() -> str:
     a = asset
     nav = f"""
-        <div class="inbox-navbar">
+        <div class="inbox-navbar" data-name="Navigation Bar" data-figma="3391:29146">
           <button type="button" class="inbox-nav-tap" aria-label="New"><img src="{a('inbox/inbox_nav_circle_plus.png')}" width="24" height="24" alt="" /></button>
           <div class="inbox-nav-center">
             <span class="inbox-nav-title">Inbox</span>
@@ -510,12 +509,12 @@ def inbox_layer_html() -> str:
               <img src="{a('inbox/inbox_account_chevron.png')}" width="8" height="8" alt="" /></span></div>
           <div class="inbox-nav-tap-spacer"></div></div>"""
     bottom_nav = f"""
-        <div class="inbox-bottom-nav" data-name="Bottom Nav Bar" data-figma="3401:2342">
-          {nav_icon_cell("Home", f"{SL3401}/inbox_home_inactive.svg", "nav_home_selected.svg", attrs='data-inbox-nav="home"')}
-          {nav_icon_cell("Explore", f"{SL3401}/inbox_explore_inactive.svg", "nav_explore_selected.svg")}
+        <div class="inbox-bottom-nav" data-name="Bottom Nav Bar" data-figma="3391:30629">
+          {nav_lite_cell("Home", f"{SL3401}/inbox_home_inactive.svg", attrs='data-inbox-nav="home"')}
+          {nav_lite_cell("Explore", f"{SL3401}/inbox_explore_inactive.svg")}
           {feed_create_btn(btn_id="", variant="inbox")}
-          {nav_icon_cell("Inbox", "nav_inbox_outline.svg", f"{SL3401}/inbox_inbox_active.svg", active=True, attrs='data-inbox-nav="inbox"')}
-          {nav_icon_cell("Me", f"{SL3401}/inbox_me_inactive.svg", "nav_me_selected.svg")}
+          {nav_lite_cell("Inbox", f"{SL3401}/inbox_inbox_active.svg", active=True, attrs='data-inbox-nav="inbox"')}
+          {nav_lite_cell("Me", f"{SL3401}/inbox_me_inactive.svg")}
         </div>"""
     return f"""
       <div id="layer-inbox" class="flow-layer flow-layer-inbox" data-route="inbox">
@@ -722,7 +721,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../shared/skylight.css?v=24" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v=25" />
 </head>
 <body class="variant-embed">
   <div class="phone" id="phone">

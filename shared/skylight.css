@@ -1780,7 +1780,7 @@ body.is-gesture-active ::selection {
   display: block;
 }
 
-/* Inbox bottom nav — Figma 3401:2342 (Story Lite light mode) */
+/* Inbox bottom nav — TUX Bottom Nav Bar 3391:30629 (Story Lite light) */
 .inbox-bottom-nav {
   height: 49px;
   flex-shrink: 0;
@@ -1823,29 +1823,8 @@ body.is-gesture-active ::selection {
   justify-content: center;
   position: relative;
 }
-.inbox-bottom-nav .feed-nav-icon .icon-fill {
-  display: none;
-}
-.inbox-bottom-nav .feed-nav-icon img {
-  width: auto;
-  height: auto;
-  max-width: 32px;
-  max-height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;
+.inbox-bottom-nav .feed-nav-icon--lite img {
   display: block;
-}
-.inbox-bottom-nav .feed-nav-cell:not(.active) .feed-nav-icon .icon-outline {
-  display: block;
-}
-.inbox-bottom-nav .feed-nav-cell.active .feed-nav-icon .icon-outline {
-  display: none;
-}
-.inbox-bottom-nav .feed-nav-cell.active .feed-nav-icon .icon-fill {
-  display: block;
-}
-.inbox-bottom-nav .feed-nav-cell.active .feed-nav-icon .icon-fill[src$=".svg"] {
-  filter: brightness(0);
 }
 .inbox-bottom-nav .feed-nav-label {
   width: 100%;
@@ -2513,7 +2492,11 @@ html.variant-embed body.variant-embed {
   display: block;
 }
 
-/* Feed bottom nav — Figma 3401:2306 (Story Lite dark mode) */
+.feed-nav-icon--lite img {
+  display: block;
+}
+
+/* Feed bottom nav — TUX Bottom Nav Bar 3391:30629 (Story Lite dark) */
 .flow-layer-feed .feed-bottom-nav {
   background: #000;
   gap: 2px;
