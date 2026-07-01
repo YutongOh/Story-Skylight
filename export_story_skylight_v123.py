@@ -952,7 +952,7 @@ def write_preview_shell() -> None:
     </main>
   </div>
   <div id="touch-cursor" aria-hidden="true"></div>
-  <script src="preview.js?v=37"></script>
+  <script src="preview.js?v=38"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")
