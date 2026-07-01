@@ -10,7 +10,10 @@
   const PREVIEW_BUILD = '148';
 
   const VARIANTS = [
+    { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
     { id: 'v2', label: 'V2', path: 'variants/v2/index.html' },
+    { id: 'v3', label: 'V3', path: 'variants/v3/index.html' },
+    { id: 'v4', label: 'V4', path: 'variants/v4/index.html' },
   ];
 
   const els = {
@@ -42,7 +45,7 @@
     if (pathMatch && VARIANTS.some((item) => item.id === pathMatch[1].toLowerCase())) {
       return pathMatch[1].toLowerCase();
     }
-    return 'v2';
+    return 'v1';
   }
 
   function updateUrl(variantId) {
@@ -164,7 +167,7 @@
       els.frame.contentWindow.postMessage({ type: 'skylight:reload' }, '*');
     } catch (_) {
       els.frame.src = variantFrameUrl(
-        VARIANTS.find((v) => v.id === currentVariant)?.path || 'variants/v2/index.html',
+        VARIANTS.find((v) => v.id === currentVariant)?.path || 'variants/v1/index.html',
       );
     }
   }
@@ -373,17 +376,14 @@
     els.phoneWrap.addEventListener('pointercancel', finishDrag);
   }
 
-  if (els.variantSelect && VARIANTS.length > 1) {
-    VARIANTS.forEach((variant) => {
-      const option = document.createElement('option');
-      option.value = variant.id;
-      option.textContent = variant.label;
-      els.variantSelect.appendChild(option);
-    });
-    els.variantSelect.addEventListener('change', () => setVariant(els.variantSelect.value));
-  } else if (els.variantSelect) {
-    els.variantSelect.style.display = 'none';
-  }
+  VARIANTS.forEach((variant) => {
+    const option = document.createElement('option');
+    option.value = variant.id;
+    option.textContent = variant.label;
+    els.variantSelect.appendChild(option);
+  });
+
+  els.variantSelect.addEventListener('change', () => setVariant(els.variantSelect.value));
   els.zoomOutBtn?.addEventListener('click', zoomOut);
   els.zoomInBtn?.addEventListener('click', zoomIn);
   els.zoomFitBtn?.addEventListener('click', setZoomFit);
