@@ -85,7 +85,7 @@ private object LindseyStoryDimens {
     val MessageBubbleRadius = 189.dp
     val MessagePadStart = 16.dp
     val MessagePadEnd = 12.dp
-    val MessageEmojiGap = 10.dp
+    val MessageEmojiGap = 14.dp
     val MessageActionGap = 16.dp
     val MessageContainerPadEnd = 6.dp
     val SwipeThreshold = 48.dp
@@ -542,9 +542,24 @@ private fun BoxScope.StoryBottomInteraction() {
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(LindseyStoryDimens.MessageEmojiGap)) {
-                TuxText(text = "😍", style = TuxTheme.typography.h4_regular, color = TuxTheme.colors.UIImageOverlayWhite)
-                TuxText(text = "😂", style = TuxTheme.typography.h4_regular, color = TuxTheme.colors.UIImageOverlayWhite)
-                TuxText(text = "😳", style = TuxTheme.typography.h4_regular, color = TuxTheme.colors.UIImageOverlayWhite)
+                Image(
+                    painter = painterResource(R.drawable.story_dm_emoji_1),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    contentScale = ContentScale.Fit,
+                )
+                Image(
+                    painter = painterResource(R.drawable.story_dm_emoji_2),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    contentScale = ContentScale.Fit,
+                )
+                Image(
+                    painter = painterResource(R.drawable.story_dm_emoji_3),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    contentScale = ContentScale.Fit,
+                )
             }
         }
         TuxIcon(
