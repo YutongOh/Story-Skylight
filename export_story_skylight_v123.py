@@ -772,12 +772,6 @@ def copy_assets() -> None:
             dest = dst_inbox if f.name.startswith("inbox_") else dst_story
             shutil.copy2(f, dest / f.name)
 
-    nodpi = RES / "drawable-nodpi"
-    if nodpi.is_dir():
-        for f in nodpi.glob("*story*"):
-            dest = dst_story if "story" in f.name else dst_images
-            shutil.copy2(f, dest / f.name)
-
     raw_video = RES / "raw" / "feed_video_01.mp4"
     if raw_video.is_file():
         shutil.copy2(raw_video, dst_video / "feed_video_01.mp4")
@@ -789,6 +783,90 @@ def copy_assets() -> None:
                 src = shared_assets / sub
                 if src.is_dir():
                     shutil.copytree(src, SHARED / "assets" / sub, dirs_exist_ok=True)
+
+    figma_dir = SHARED / "assets" / "figma"
+    figma_dir.mkdir(parents=True, exist_ok=True)
+
+    nodpi = RES / "drawable-nodpi"
+    if nodpi.is_dir():
+        for f in nodpi.glob("*"):
+            name = f.name.lower()
+            if "story" in name or "multi_photo" in name:
+                dest = dst_story if "story" in name else dst_images
+                shutil.copy2(f, dest / f.name)
+
+    dismiss_svg = dst_inbox / "inbox_dismiss_x.svg"
+    if not dismiss_svg.is_file():
+        bundled = OUT / "shared/assets/inbox/inbox_dismiss_x.svg"
+        if bundled.is_file():
+            shutil.copy2(bundled, dismiss_svg)
+
+
+def sync_android_reference() -> None:
+    """Mirror Android Story Skylight source + res assets alongside the web demo."""
+    ref = OUT / "android-reference"
+    pkg = "com/example/designlab/playgrounds"
+    kotlin_root = ref / "kotlin" / pkg
+    kotlin_root.mkdir(parents=True, exist_ok=True)
+
+    playground_java = ROOT / "playgrounds/src/main/java/com/example/designlab/playgrounds"
+    for sub in ("figmainbox", "feed"):
+        src_dir = playground_java / sub
+        if not src_dir.is_dir():
+            continue
+        dst_dir = kotlin_root / sub
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        for f in src_dir.glob("*.kt"):
+            shutil.copy2(f, dst_dir / f.name)
+
+    abulm_v1 = playground_java / "abulmv1" / "AbulmV1Screen.kt"
+    if abulm_v1.is_file():
+        dst = kotlin_root / "abulmv1"
+        dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(abulm_v1, dst / abulm_v1.name)
+
+    main_activity = ROOT / "app/src/main/java/com/example/designlab/MainActivity.kt"
+    if main_activity.is_file():
+        app_dst = ref / "kotlin/com/example/designlab"
+        app_dst.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(main_activity, app_dst / "MainActivity.kt")
+
+    res_drawable = ref / "res/drawable"
+    res_nodpi = ref / "res/drawable-nodpi"
+    res_values = ref / "res/values"
+    res_raw = ref / "res/raw"
+    for d in (res_drawable, res_nodpi, res_values, res_raw):
+        d.mkdir(parents=True, exist_ok=True)
+
+    for pattern in ("inbox_*.png", "story_*.png", "story_add_tile_*.jpg"):
+        for f in (RES / "drawable").glob(pattern):
+            shutil.copy2(f, res_drawable / f.name)
+
+    nodpi = RES / "drawable-nodpi"
+    if nodpi.is_dir():
+        for f in nodpi.glob("*"):
+            if "story" in f.name.lower() or "multi_photo" in f.name.lower():
+                shutil.copy2(f, res_nodpi / f.name)
+
+    colors_inbox = RES / "values/colors_inbox.xml"
+    if colors_inbox.is_file():
+        shutil.copy2(colors_inbox, res_values / "colors_inbox.xml")
+
+    raw_video = RES / "raw/feed_video_01.mp4"
+    if raw_video.is_file():
+        shutil.copy2(raw_video, res_raw / "feed_video_01.mp4")
+
+    readme = ref / "README.md"
+    readme.write_text(
+        "# Android reference\n\n"
+        "Mirrored from DesignLab Android for Story Skylight V1–V4.\n\n"
+        "- `kotlin/` — `figmainbox`, `feed`, `AbulmV1Screen`, `MainActivity`\n"
+        "- `res/drawable/` — inbox + story bitmaps\n"
+        "- `res/drawable-nodpi/` — story preview photos\n"
+        "- `res/raw/` — feed video\n\n"
+        "Web demo assets live under `../shared/assets/` (same files, web paths).\n",
+        encoding="utf-8",
+    )
 
 
 def write_preview_shell() -> None:
@@ -924,6 +1002,7 @@ def build_css() -> None:
 def main() -> None:
     download_figma_assets()
     copy_assets()
+    sync_android_reference()
     write_preview_shell()
     build_css()
     manifest = {"variants": list(VARIANTS.keys()), "motion": MOTION}

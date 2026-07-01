@@ -67,8 +67,10 @@ story-skylight-v123-demo/
 ├── export_story_skylight_v123.py
 ├── shared/
 │   ├── skylight.css / skylight-inbox.css / skylight-core.js
-│   └── assets/
-└── variants/v1–v4/index.html
+│   └── assets/          # web 素材（inbox / story / feed / figma / video）
+└── android-reference/     # Android 源码 + res 素材镜像
+    ├── kotlin/
+    └── res/
 ```
 
 ## 与 Android 对齐

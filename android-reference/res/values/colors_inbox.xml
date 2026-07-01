@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figma 3242:27879 — category icon circle fills (no exact TUX token for all). -->
+<resources>
+    <color name="inbox_category_followers_bg">#FF00ABF4</color>
+    <color name="inbox_category_activity_bg">#FFFF3B76</color>
+    <color name="inbox_category_system_bg">#FF32364B</color>
+</resources>
