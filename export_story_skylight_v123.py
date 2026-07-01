@@ -75,6 +75,8 @@ VARIANTS = {
     },
 }
 
+PUBLISH_VARIANTS = ("v2",)
+
 MOTION = {
     "expandMs": 450,
     "collapseMs": 350,
@@ -899,6 +901,20 @@ def sync_android_reference() -> None:
     )
 
 
+def cleanup_publish_artifacts() -> None:
+    """Remove unpublished variant demos from the GitHub Pages bundle."""
+    for vid in VARIANTS:
+        if vid in PUBLISH_VARIANTS:
+            continue
+        vdir = OUT / "variants" / vid
+        if vdir.is_dir():
+            shutil.rmtree(vdir)
+    for name in ("preview.html", "preview-v1.html", "preview-v3.html", "preview-v4.html"):
+        path = OUT / name
+        if path.is_file():
+            path.unlink()
+
+
 def write_preview_shell() -> None:
     preview_html = """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -955,9 +971,7 @@ def write_preview_shell() -> None:
   <script src="preview.js?v=37"></script>
 </body>
 </html>"""
-    (OUT / "preview.html").write_text(preview_html, encoding="utf-8")
-
-    for vid in ("v1", "v2", "v3", "v4"):
+    for vid in PUBLISH_VARIANTS:
         label = vid.upper()
         variant_preview = preview_html.replace(
             '<html lang="zh-CN">',
@@ -972,54 +986,11 @@ def write_preview_shell() -> None:
             'src="variants/v1/index.html"',
             f'src="variants/{vid}/index.html"',
         )
+        if vid == "v2":
+            (OUT / "index.html").write_text(variant_preview, encoding="utf-8")
         (OUT / f"preview-{vid}.html").write_text(variant_preview, encoding="utf-8")
 
-    preview_js_src = (ALBUM / "preview.js").read_text(encoding="utf-8")
-    preview_js = preview_js_src.replace(
-        "const VARIANTS = [\n    { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },\n    { id: 'v2', label: 'V2', path: 'variants/v2/index.html' },\n    { id: 'v3', label: 'V3', path: 'variants/v3/index.html' },\n  ];",
-        "const VARIANTS = [\n    { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },\n    { id: 'v2', label: 'V2', path: 'variants/v2/index.html' },\n    { id: 'v3', label: 'V3', path: 'variants/v3/index.html' },\n    { id: 'v4', label: 'V4', path: 'variants/v4/index.html' },\n  ];",
-    ).replace(
-        "album:reload",
-        "skylight:reload",
-    ).replace(
-        "    reloadBtn: document.getElementById('reloadBtn'),\n    measureBtn:",
-        "    reloadBtn: document.getElementById('reloadBtn'),\n    variantCaption: document.getElementById('variantCaption'),\n    measureBtn:",
-    ).replace(
-        "    els.variantSelect.value = variantId;\n    updateUrl(variantId);",
-        "    els.variantSelect.value = variantId;\n    if (els.variantCaption) els.variantCaption.textContent = meta.label;\n    updateUrl(variantId);",
-    ).replace(
-        "const PREVIEW_BUILD = '3';",
-        "const PREVIEW_BUILD = '140';",
-    )
-    preview_js_path = OUT / "preview.js"
-    if not preview_js_path.is_file():
-        (OUT / "preview.js").write_text(preview_js, encoding="utf-8")
-
-    index_html = """<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Story Skylight V1–V4</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { min-height: 100vh; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
-    .menu { width: min(420px, 100%); background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
-    .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; color: #161823; text-decoration: none; border-bottom: 1px solid rgba(0,0,0,.06); font-size: 15px; font-weight: 600; }
-    .menu-item:last-child { border-bottom: 0; }
-    .menu-item:hover { background: #fafafa; }
-  </style>
-</head>
-<body>
-  <nav class="menu" aria-label="Story Skylight variants">
-    <a class="menu-item" href="preview-v1.html">V1 — Integrated（锁定展开）</a>
-    <a class="menu-item" href="preview-v2.html">V2 — Overlay + 链式刷新</a>
-    <a class="menu-item" href="preview-v3.html">V3 — Integrated + 半展开回弹</a>
-    <a class="menu-item" href="preview-v4.html">V4 — Overlay + Release hint</a>
-  </nav>
-</body>
-</html>"""
-    (OUT / "index.html").write_text(index_html, encoding="utf-8")
+    cleanup_publish_artifacts()
 
 
 def build_css() -> None:
@@ -1035,9 +1006,10 @@ def main() -> None:
     sync_android_reference()
     write_preview_shell()
     build_css()
-    manifest = {"variants": list(VARIANTS.keys()), "motion": MOTION}
+    manifest = {"variants": list(PUBLISH_VARIANTS), "motion": MOTION}
     (OUT / "variants-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    for vid, cfg in VARIANTS.items():
+    for vid in PUBLISH_VARIANTS:
+        cfg = VARIANTS[vid]
         vdir = OUT / "variants" / vid
         vdir.mkdir(parents=True, exist_ok=True)
         (vdir / "index.html").write_text(variant_html(vid, cfg), encoding="utf-8")

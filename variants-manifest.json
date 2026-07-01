@@ -1,9 +1,6 @@
 {
   "variants": [
-    "v1",
-    "v2",
-    "v3",
-    "v4"
+    "v2"
   ],
   "motion": {
     "expandMs": 450,
