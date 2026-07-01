@@ -191,13 +191,8 @@ SKYLIGHT_STORIES = [
 ]
 
 FIGMA_ASSETS = {
-    "figma/story_preview_like.png": "https://www.figma.com/api/mcp/asset/a2d01b63-61be-46ef-9648-232eaf23cdd7",
-    "figma/story_preview_share.png": "https://www.figma.com/api/mcp/asset/3d9da38a-e1ab-400c-8926-8850d7f7c4c9",
-    "figma/story_dm_emoji_1.png": "https://www.figma.com/api/mcp/asset/b35ac72e-213a-4c89-b6c0-0c63a3ed289f",
-    "figma/story_dm_emoji_2.png": "https://www.figma.com/api/mcp/asset/776d3eb1-effc-4592-922e-4aab46887618",
-    "figma/story_dm_emoji_3.png": "https://www.figma.com/api/mcp/asset/da9196be-6abf-43d0-a8d4-90ab82d487e6",
-    "figma/story_preview_like.svg": "https://www.figma.com/api/mcp/asset/dcf1c75c-157e-447f-8ed9-0c1127adec34",
-    "figma/story_preview_share.svg": "https://www.figma.com/api/mcp/asset/81d92de8-a7b4-4bf5-a059-ce00d8828ceb",
+    "figma/story_preview_like.svg": "https://www.figma.com/api/mcp/asset/6e37cc7b-044d-47d5-856a-d056f4c9e214",
+    "figma/story_preview_share.svg": "https://www.figma.com/api/mcp/asset/14b9e419-9204-4ed1-b45d-73582e283f47",
     "figma/story_preview_camera.svg": "https://www.figma.com/api/mcp/asset/72523eff-e4b0-41e4-99df-4d53c853fe25",
     "figma/story_preview_close.svg": "https://www.figma.com/api/mcp/asset/eb4f1b90-b21f-4526-954b-f2f6147dcd1c",
     "figma/story_preview_top_overlay.svg": "https://www.figma.com/api/mcp/asset/3bba05e5-d916-4341-b96a-009f17e248c0",
@@ -707,8 +702,8 @@ def story_preview_html() -> str:
               </div>
             </div>
             <div class="story-preview-actions-row" data-figma="3430:6701">
-              <img src="{a('figma/story_preview_like.png')}" width="28" height="28" alt="" />
-              <img src="{a('figma/story_preview_share.png')}" width="28" height="28" alt="" />
+              <img src="{a('figma/story_preview_like.svg')}" width="28" height="28" alt="" />
+              <img src="{a('figma/story_preview_share.svg')}" width="28" height="28" alt="" />
             </div>
           </div>
         </div>
