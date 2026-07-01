@@ -282,11 +282,35 @@ def download_figma_assets() -> None:
                 _normalize_figma_svg(out)
             print(f"  downloaded {rel} ({out.stat().st_size} bytes)")
 
+    for name in ("story_preview_like", "story_preview_share"):
+        svg = SHARED / "assets" / "figma" / f"{name}.svg"
+        png = SHARED / "assets" / "figma" / f"{name}.png"
+        if svg.is_file():
+            _svg_to_png(svg, png, size=56)
+            if png.is_file():
+                print(f"  rasterized figma/{name}.png ({png.stat().st_size} bytes)")
+
 
 def _normalize_figma_svg(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     text = text.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid meet"')
+    text = text.replace('fill="var(--fill-0, white)"', 'fill="#ffffff"')
+    text = text.replace("fill='var(--fill-0, white)'", "fill='#ffffff'")
+    slug = path.stem.replace(".", "_").replace("-", "_")
+    text = text.replace("filter0_dd_0_4", f"filter0_dd_{slug}")
     path.write_text(text, encoding="utf-8")
+
+
+def _svg_to_png(svg_path: Path, png_path: Path, *, size: int = 56) -> None:
+    if not svg_path.is_file():
+        return
+    result = subprocess.run(
+        ["rsvg-convert", "-w", str(size), "-h", str(size), str(svg_path), "-o", str(png_path)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"  warn: png convert failed {png_path.name}: {result.stderr.strip()}")
 
 
 def badge_html(count: int) -> str:
@@ -702,8 +726,8 @@ def story_preview_html() -> str:
               </div>
             </div>
             <div class="story-preview-actions-row" data-figma="3430:6701">
-              <img src="{a('figma/story_preview_like.svg')}" width="28" height="28" alt="" />
-              <img src="{a('figma/story_preview_share.svg')}" width="28" height="28" alt="" />
+              <img src="{a('figma/story_preview_like.png')}" width="28" height="28" alt="" />
+              <img src="{a('figma/story_preview_share.png')}" width="28" height="28" alt="" />
             </div>
           </div>
         </div>
@@ -723,7 +747,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../shared/skylight.css?v=26" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v=27" />
 </head>
 <body class="variant-embed">
   <div class="phone" id="phone">
