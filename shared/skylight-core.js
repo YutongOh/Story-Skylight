@@ -490,6 +490,34 @@
       return `linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) ${solidEnd}%, rgba(0,0,0,0) ${boundaryPct}%)`;
     }
 
+    integratedSkylightEdgeFadeMask(integratedProgress) {
+      if (cfg.storySlideEnabled) return null;
+      const progress = clamp01(integratedProgress);
+      if (progress <= 0.001) return null;
+      if (progress >= 0.999) return null;
+      const boundaryPct = progress * 100;
+      const maxFadeBandPct = Math.min(34, Math.max(12, (40 / this.maxPx) * 100));
+      const fadeBandPct = maxFadeBandPct * (1 - progress);
+      if (fadeBandPct < 0.05) return null;
+      const fadeEnd = Math.min(boundaryPct, fadeBandPct);
+      return `linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) ${fadeEnd}%, rgba(0,0,0,1) 100%)`;
+    }
+
+    applyIntegratedSkylightMask(el, integratedProgress) {
+      if (!el) return;
+      const mask = this.integratedSkylightEdgeFadeMask(integratedProgress);
+      if (mask) {
+        el.style.webkitMaskImage = mask;
+        el.style.maskImage = mask;
+        el.style.webkitMaskSize = '100% 100%';
+        el.style.maskSize = '100% 100%';
+        el.style.webkitMaskRepeat = 'no-repeat';
+        el.style.maskRepeat = 'no-repeat';
+      } else {
+        this.clearSkylightMask(el);
+      }
+    }
+
     applySkylightMask(el) {
       if (!el) return;
       const mask = this.overlaySkylightEdgeFadeMask();
@@ -797,10 +825,10 @@
         if (els.storyRevealSlot) {
           els.storyRevealSlot.style.height = `${this.maxPx}px`;
           els.storyRevealSlot.style.visibility = storyVisible ? 'visible' : 'hidden';
-          els.storyRevealSlot.style.opacity = `${integratedProgress}`;
+          els.storyRevealSlot.style.opacity = storyVisible ? '1' : '0';
           els.storyRevealSlot.style.transform = 'none';
           els.storyRevealSlot.style.pointerEvents = storyVisible ? '' : 'none';
-          this.clearSkylightMask(els.storyRevealSlot);
+          this.applyIntegratedSkylightMask(els.storyRevealSlot, integratedProgress);
         }
         if (els.inboxListLayer) {
           els.inboxListLayer.style.transform = `translateY(${this.refreshLayoutPx()}px)`;
@@ -808,7 +836,8 @@
         const slideInner = els.storyRevealSlot?.querySelector('.skylight-row-inner') || els.skylightRow;
         if (slideInner) {
           slideInner.style.transform = 'none';
-          slideInner.style.opacity = '1';
+          slideInner.style.opacity = storyVisible ? '1' : '0';
+          this.applyIntegratedSkylightMask(slideInner, integratedProgress);
         }
         this.hideReleaseHint();
       }

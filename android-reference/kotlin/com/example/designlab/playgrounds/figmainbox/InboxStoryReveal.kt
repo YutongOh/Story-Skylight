@@ -19,7 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -789,5 +793,40 @@ fun InboxStoryRevealSlot(
                 onStoryClick = onStoryClick,
             )
         }
+    }
+}
+
+internal fun integratedStoryEdgeFadeEndFraction(progress: Float, maxHeightPx: Float): Float? {
+    if (progress <= 0.001f || progress >= 0.999f) return null
+    val boundaryPct = progress * 100f
+    val maxFadeBandPct = minOf(34f, maxOf(12f, (40f / maxHeightPx) * 100f))
+    val fadeBandPct = maxFadeBandPct * (1f - progress)
+    if (fadeBandPct < 0.05f) return null
+    return minOf(boundaryPct, fadeBandPct) / 100f
+}
+
+fun Modifier.integratedStoryEdgeFadeMask(
+    progress: Float,
+    maxHeightPx: Float,
+    enabled: Boolean = true,
+): Modifier {
+    if (!enabled) return this
+    val fadeEndFraction = integratedStoryEdgeFadeEndFraction(progress, maxHeightPx) ?: return this
+    return drawWithContent {
+        drawContent()
+        drawRect(
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to Color.Transparent,
+                    fadeEndFraction to Color.Black,
+                    1f to Color.Black,
+                ),
+                startY = 0f,
+                endY = size.height,
+            ),
+            topLeft = Offset.Zero,
+            size = size,
+            blendMode = BlendMode.DstIn,
+        )
     }
 }

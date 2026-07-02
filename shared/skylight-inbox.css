@@ -220,6 +220,11 @@
   will-change: opacity;
 }
 
+.inbox-reveal-root.mode-integrated .story-reveal-slot {
+  -webkit-mask-mode: alpha;
+  mask-mode: alpha;
+}
+
 .inbox-reveal-root.mode-overlay .story-reveal-slot {
   -webkit-mask-mode: alpha;
   mask-mode: alpha;

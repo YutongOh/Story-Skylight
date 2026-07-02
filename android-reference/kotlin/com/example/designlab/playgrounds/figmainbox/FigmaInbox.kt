@@ -312,7 +312,11 @@ private fun FigmaInboxScreenContent(
                                     activeStoryPreview = InboxStoryPreviews.forLabel(storyLabel)
                                     storyPreviewVisible = activeStoryPreview != null
                                 },
-                                modifier = Modifier.alpha(storyReveal.storyAlpha),
+                                modifier = Modifier.integratedStoryEdgeFadeMask(
+                                    progress = storyReveal.storySlideProgress,
+                                    maxHeightPx = storyReveal.headerHeightPx,
+                                    enabled = !storySlideEnabled,
+                                ),
                             )
                         }
                         InboxNotificationCells()
