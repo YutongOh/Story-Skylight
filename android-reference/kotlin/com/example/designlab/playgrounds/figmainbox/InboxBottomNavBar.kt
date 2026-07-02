@@ -48,6 +48,7 @@ import com.example.designlab.playgrounds.R
 @Composable
 fun InboxBottomNavBar(
     onHomeClick: () -> Unit = {},
+    onInboxClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = TuxTheme.colors
@@ -100,7 +101,7 @@ fun InboxBottomNavBar(
                     selected = true,
                     selectedIcon = IconExpExp01IconInboxFill,
                     unselectedIcon = IconExpExp01IconInbox,
-                    onClick = {},
+                    onClick = onInboxClick,
                     modifier = Modifier.weight(1f),
                 )
                 InboxBottomNavCell(

@@ -44,6 +44,7 @@
   // Damp how much raw wheel distance moves the reveal, so a fast flick's inertia
   // tail doesn't blast it open/closed. The actual commit is by direction anyway.
   const SCROLL_SETTLE_IDLE_MS = 150;
+  const TAB_REFRESH_EXPAND_MS = 200;
   const FLING_MIN_VELOCITY = 0.06;
   const FLING_FRICTION = 0.88;
   const GESTURE_AXIS_LOCK_PX = 8;
@@ -265,6 +266,93 @@
 
     integratedExpanded() {
       return this.integratedHiddenPx() <= 0.5;
+    }
+
+    integratedListScrollTop() {
+      return this.listEl()?.scrollTop ?? 0;
+    }
+
+    inboxTabRefreshPhase() {
+      if (this.mode === 'locked-integrated') {
+        return this.integratedListScrollTop() <= 0.5 ? 'expanded' : 'listScrolled';
+      }
+      if (this.isIntegratedMode()) {
+        const scrollTop = this.integratedListScrollTop();
+        if (scrollTop <= 0.5) return 'expanded';
+        if (scrollTop <= this.maxPx + 4) return 'collapsed';
+        return 'listScrolled';
+      }
+      const list = this.listEl();
+      const listScrolled = !!(list && list.scrollTop > 4);
+      const expanded = this.expanded && this.reveal >= this.maxPx - 0.5;
+      if (expanded && !listScrolled) return 'expanded';
+      if (!listScrolled) return 'collapsed';
+      return 'listScrolled';
+    }
+
+    animateListScrollTo(target, duration, onComplete) {
+      const list = this.listEl();
+      if (!list) {
+        onComplete?.();
+        return;
+      }
+      const start = list.scrollTop;
+      if (Math.abs(start - target) < 0.5) {
+        onComplete?.();
+        return;
+      }
+      this.animateValue(
+        () => start,
+        (v) => { list.scrollTop = Math.round(v); },
+        target,
+        duration,
+        onComplete,
+        { affectsReveal: false },
+      );
+    }
+
+    animateIntegratedScrollTopTo(target, duration, onComplete) {
+      const list = this.listEl();
+      if (!list) {
+        onComplete?.();
+        return;
+      }
+      const start = list.scrollTop;
+      if (Math.abs(start - target) < 0.5) {
+        onComplete?.();
+        return;
+      }
+      this.cancelAnim();
+      list.style.transform = '';
+      this._integratedAnimHiddenPx = null;
+      if (target < this.maxPx - 0.5) this.storyVisible = true;
+      this.animateValue(
+        () => start,
+        (v) => { list.scrollTop = Math.round(v); },
+        target,
+        duration,
+        () => {
+          this.bakeIntegratedHiddenPx(Math.max(0, Math.min(this.maxPx, target)));
+          this.expanded = target <= 0.5;
+          this.storyVisible = target <= 0.5 || this.mode === 'locked-integrated';
+          this.applyVisuals();
+          onComplete?.();
+        },
+        { affectsReveal: true, skipCancel: true },
+      );
+    }
+
+    integratedPullCapScrollTop() {
+      if (cfg.expandOnDrag === true || cfg.lockStoryExpanded) return 0;
+      return Math.max(0, this.maxPx - this.pullThresholdPx);
+    }
+
+    clampIntegratedPullDuringDrag(down) {
+      if (cfg.expandOnDrag === true || cfg.lockStoryExpanded || !this.isIntegratedMode() || !down) return;
+      const list = this.listEl();
+      if (!list || list.scrollTop <= 0.5) return;
+      const minScrollTop = this.integratedPullCapScrollTop();
+      if (list.scrollTop < minScrollTop) list.scrollTop = minScrollTop;
     }
 
     integratedCollapseOnDrag(deltaY) {
@@ -500,6 +588,7 @@
         if (!list) return false;
         const before = list.scrollTop;
         this.scrollListBy(-fingerDy);
+        if (fingerDy > 0) this.clampIntegratedPullDuringDrag(true);
         if (list.scrollTop === before && Math.abs(fingerDy) > 0.5) return false;
         this.expanded = this.integratedExpanded();
         this.applyVisuals();
@@ -624,6 +713,7 @@
       if (this.mode !== 'integrated' || cfg.lockStoryExpanded || this.isAnimating) return;
       this.expanded = this.integratedExpanded();
       this.applyVisuals();
+      if (this._touch) return;
       clearTimeout(this._scrollSettleTimer);
       this._scrollSettleTimer = setTimeout(() => {
         this._scrollSettleTimer = null;
@@ -909,9 +999,13 @@
       this._animFrame = requestAnimationFrame(tick);
     }
 
-    animateExpand() {
-      if (this.mode === 'locked-integrated') return;
+    animateExpand(onComplete, expandMs = MOTION.expandMs) {
+      if (this.mode === 'locked-integrated') {
+        onComplete?.();
+        return;
+      }
       this.storyVisible = true;
+      const slideMs = Math.min(expandMs, MOTION.storySlideMs);
       if (this.mode === 'overlay') {
         const fromReleaseHint = cfg.releaseHintEnabled
           && !cfg.expandOnDrag
@@ -921,17 +1015,19 @@
         this.animateOverlayReveal(
           this.maxPx,
           1,
-          MOTION.expandMs,
-          MOTION.storySlideMs,
+          expandMs,
+          slideMs,
           () => {
             this.expanded = true;
             this.storyVisible = true;
             this.applyVisuals();
+            onComplete?.();
           },
         );
       } else {
-        this.animateIntegratedExpand(() => {
+        this.animateIntegratedScrollTo(0, expandMs, () => {
           this.expanded = true;
+          onComplete?.();
         });
       }
     }
@@ -1013,21 +1109,9 @@
       }
     }
 
-    settleRefresh() {
+    runTabRefresh() {
       if (this.isRefreshing) return;
       this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
-      const shouldRefresh = this.refreshOffset >= this.refreshThresholdPx;
-      if (!shouldRefresh) {
-        this.animateValue(
-          () => this.refreshOffset,
-          (v) => { this.refreshOffset = Math.max(0, Math.min(this.refreshMaxPullPx, v)); },
-          0,
-          MOTION.settleBackMs,
-          undefined,
-          { affectsReveal: false },
-        );
-        return;
-      }
       this.isRefreshing = true;
       this.refreshLooping = true;
       this.refreshOffset = this.refreshIndicatorHeightPx;
@@ -1046,6 +1130,70 @@
           { affectsReveal: false },
         );
       }, cfg.refreshDurationMs ?? 1200);
+    }
+
+    prepareRefreshPosition(onReady) {
+      this.stopFling(false);
+      this.cancelAutoExpand();
+      clearTimeout(this._scrollSettleTimer);
+      this._scrollSettleTimer = null;
+      this._touch = null;
+      this.setGestureActive(false);
+
+      const finishIfReady = () => {
+        if (typeof onReady === 'function') onReady();
+      };
+
+      const phase = this.inboxTabRefreshPhase();
+      if (phase === 'expanded') {
+        finishIfReady();
+        return;
+      }
+
+      if (this.isIntegratedMode() || this.mode === 'locked-integrated') {
+        const duration = phase === 'collapsed' ? TAB_REFRESH_EXPAND_MS : MOTION.expandMs;
+        this.animateIntegratedScrollTopTo(0, duration, finishIfReady);
+        return;
+      }
+
+      const afterListScroll = () => {
+        if (this.expanded && this.reveal >= this.maxPx - 0.5) {
+          finishIfReady();
+          return;
+        }
+        this.animateExpand(finishIfReady, TAB_REFRESH_EXPAND_MS);
+      };
+
+      if (phase === 'listScrolled') {
+        this.animateListScrollTo(0, MOTION.settleBackMs, afterListScroll);
+        return;
+      }
+      afterListScroll();
+    }
+
+    triggerInboxTabRefresh() {
+      if (showFeed || this.isRefreshing || this.isAnimating) return;
+      this.prepareRefreshPosition(() => {
+        this.runTabRefresh();
+      });
+    }
+
+    settleRefresh() {
+      if (this.isRefreshing) return;
+      this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
+      const shouldRefresh = this.refreshOffset >= this.refreshThresholdPx;
+      if (!shouldRefresh) {
+        this.animateValue(
+          () => this.refreshOffset,
+          (v) => { this.refreshOffset = Math.max(0, Math.min(this.refreshMaxPullPx, v)); },
+          0,
+          MOTION.settleBackMs,
+          undefined,
+          { affectsReveal: false },
+        );
+        return;
+      }
+      this.runTabRefresh();
     }
 
     beginGesture(clientX, clientY) {
@@ -1134,6 +1282,7 @@
         if (this.integratedCollapseOnDrag(deltaY)) return true;
         if (list) {
           this.scrollListBy(-deltaY);
+          this.clampIntegratedPullDuringDrag(down);
           this.expanded = this.integratedExpanded();
           this.applyVisuals();
           if (this._touch) this._touch.canFling = true;
@@ -1409,7 +1558,9 @@
       }
       if (!revealActive) {
         event.preventDefault();
-        this.scrollListBy(event.deltaY * this.wheelScrollDamping);
+        const wheelDelta = event.deltaY * this.wheelScrollDamping;
+        this.scrollListBy(wheelDelta);
+        if (wheelDelta < 0) this.clampIntegratedPullDuringDrag(true);
         if (this.mode === 'integrated') {
           this.expanded = this.integratedExpanded();
           this.applyVisuals();
@@ -1769,6 +1920,10 @@
           return;
         }
         if (nav === 'inbox') {
+          if (!showFeed) {
+            reveal.triggerInboxTabRefresh();
+            return;
+          }
           showInboxLayer();
         }
       });

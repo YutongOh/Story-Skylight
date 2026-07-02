@@ -46,10 +46,11 @@ python3 -m http.server 8770
 
 1. **默认 Feed** — 与 Effect Loading 1.2s 一致
 2. **点 Inbox Tab** — 150ms crossfade 进入 Inbox
-3. **V2/V3/V4** — 进入 Inbox 后 400ms 自动展开天窗（V3 需 `startExpanded + autoExpandOnEnter`）
-4. **点 Story 头像** — Story Preview（进度条 + 横滑）
-5. **点 Create（Skylight）** — Add to Story sheet
-6. **Feed Create** — Album V1
+3. **Inbox 页内再点 Inbox Tab** — 按状态触发：已展开 → 仅刷新；已收起 → 快速展开 + 刷新；列表已滚动 → 回顶 + 展开 + 刷新
+4. **V2/V3/V4** — 进入 Inbox 后 400ms 自动展开天窗（V3 需 `startExpanded + autoExpandOnEnter`）
+5. **点 Story 头像** — Story Preview（进度条 + 横滑）
+6. **点 Create（Skylight）** — Add to Story sheet
+7. **Feed Create** — Album V1
 
 ## 重新生成
 
@@ -79,4 +80,4 @@ story-skylight-v123-demo/
 - Reveal：`MaxHeight=118dp`；V2/V3 `maxPull=118dp`；V1/V4 `maxPull=72dp`
 - 动效：`ExpandMs=450`，`CollapseMs=350`，`SettleBackMs=250`，`AutoExpandDelayMs=400`
 - 阈值：V2/V3 `PushThreshold=16dp`；V1/V4 `PushThreshold=30dp`；V3 `PullThreshold=32dp`；V1/V4 `PullThreshold=24dp`（V2 展开为 0）
-- V3 预览壳双指滚动：`wheelScrollDamping=0.72`（Web 专用）
+- V3 预览壳双指滚动：`wheelScrollDamping=0.72`（Web 专用）；`expandOnDrag=false` 时拖动最多露出 `PullThreshold`，松手后再判定展开/回弹

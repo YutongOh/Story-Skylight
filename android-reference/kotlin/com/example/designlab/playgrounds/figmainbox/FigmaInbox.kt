@@ -26,7 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -198,6 +198,8 @@ private fun FigmaInboxScreenContent(
     var readStoryLabels by remember { mutableStateOf(setOf<String>()) }
     var pendingMoveStoryLabel by remember { mutableStateOf<String?>(null) }
     var pendingReadStoryLabel by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    var inboxTabRefresh by remember { mutableStateOf<(kotlinx.coroutines.CoroutineScope) -> Unit>({}) }
 
     fun moveStoryToTail(label: String) {
         val storyIndex = skylightStories.indexOfFirst { it.label == label }
@@ -262,6 +264,7 @@ private fun FigmaInboxScreenContent(
                     inboxActive = inboxActive,
                     lockExpanded = lockStoryExpanded,
                 )
+                inboxTabRefresh = storyReveal.triggerTabRefresh
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -361,6 +364,7 @@ private fun FigmaInboxScreenContent(
                     lockExpanded = lockStoryExpanded,
                     chainRefreshAfterExpand = chainRefreshAfterExpand,
                 )
+                inboxTabRefresh = storyReveal.triggerTabRefresh
 
                 // Box overlay: story slot is fixed behind; list slides down to reveal it.
                 // clipToBounds prevents the offset list from overflowing onto BottomNavBar.
@@ -425,7 +429,10 @@ private fun FigmaInboxScreenContent(
                     }
                 }
             }
-            InboxBottomNavBar(onHomeClick = onHomeTabClick)
+            InboxBottomNavBar(
+                onHomeClick = onHomeTabClick,
+                onInboxClick = { inboxTabRefresh(scope) },
+            )
         }
 
         if (enableCreateNavigation) {

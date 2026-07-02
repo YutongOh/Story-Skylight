@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.bytedance.tux.compose.TuxTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ internal object StoryRevealMotion {
     const val StorySlideMs = 300
     const val SettleBackMs = 250
     const val AutoExpandDelayMs = 400
+    const val TabRefreshExpandMs = 200
     const val RefreshDurationMs = 1200
     const val PushFlingVelocity = 1500f
     // Drag damping: how much the list moves per finger pixel (< 1 = feels natural, not 1:1)
@@ -72,6 +74,7 @@ class StoryRevealState internal constructor(
     val releaseHintVisible: Boolean,
     val releaseHintAlpha: Float,
     val refreshState: StoryRefreshState,
+    val triggerTabRefresh: (CoroutineScope) -> Unit,
 )
 
 @Stable
@@ -81,6 +84,7 @@ class IntegratedStoryRevealState internal constructor(
     val storySlideProgress: Float,
     val storyAlpha: Float,
     val refreshState: StoryRefreshState,
+    val triggerTabRefresh: (CoroutineScope) -> Unit,
 )
 
 @Composable
@@ -133,8 +137,9 @@ fun rememberStoryRevealState(
         dragRefreshOffsetPx
     }
 
-    suspend fun animateExpand() {
+    suspend fun animateExpand(expandMs: Int = StoryRevealMotion.ExpandMs) {
         val startOffset = dragOffsetPx
+        val slideMs = minOf(expandMs, StoryRevealMotion.StorySlideMs)
         isExpanded = true
         isAnimating = true
         isStoryVisible = true
@@ -146,12 +151,12 @@ fun rememberStoryRevealState(
                     storySlideProgress.snapTo((startOffset / revealHeightPx).coerceIn(0f, 1f))
                     storySlideProgress.animateTo(
                         1f,
-                        tween(StoryRevealMotion.StorySlideMs, easing = motionEasing),
+                        tween(slideMs, easing = motionEasing),
                     )
                 }
                 listOffset.animateTo(
                     revealHeightPx,
-                    tween(StoryRevealMotion.ExpandMs, easing = motionEasing),
+                    tween(expandMs, easing = motionEasing),
                 )
                 slideJob.join()
             }
@@ -434,6 +439,27 @@ fun rememberStoryRevealState(
             refreshProgress = (refreshOffsetPx / refreshThresholdPx).coerceIn(0f, 1f),
             isRefreshing = isRefreshing,
         ),
+        triggerTabRefresh = { launchScope ->
+            launchScope.launch {
+                if (isRefreshing || isRefreshSettling || isAnimating) return@launch
+                val listScrolled = scrollState.value > 0
+                when {
+                    isExpanded && !listScrolled -> Unit
+                    listScrolled -> {
+                        scrollState.animateScrollTo(
+                            0,
+                            tween(StoryRevealMotion.SettleBackMs, easing = motionEasing),
+                        )
+                        if (!isExpanded) {
+                            animateExpand(StoryRevealMotion.TabRefreshExpandMs)
+                        }
+                    }
+                    else -> animateExpand(StoryRevealMotion.TabRefreshExpandMs)
+                }
+                dragRefreshOffsetPx = refreshIndicatorHeightPx
+                settleRefresh()
+            }
+        },
     )
 }
 
@@ -637,6 +663,30 @@ fun rememberIntegratedStoryRevealState(
             refreshProgress = (refreshOffsetPx / refreshThresholdPx).coerceIn(0f, 1f),
             isRefreshing = isRefreshing,
         ),
+        triggerTabRefresh = { launchScope ->
+            launchScope.launch {
+                if (isRefreshing || isRefreshSettling || isSettling) return@launch
+                val scrollTop = scrollState.value
+                val collapsedPx = revealHeightPx.toInt()
+                when {
+                    scrollTop <= 0 -> Unit
+                    scrollTop <= collapsedPx + 4 -> {
+                        scrollState.animateScrollTo(
+                            0,
+                            tween(StoryRevealMotion.TabRefreshExpandMs, easing = motionEasing),
+                        )
+                    }
+                    else -> {
+                        scrollState.animateScrollTo(
+                            0,
+                            tween(StoryRevealMotion.ExpandMs, easing = motionEasing),
+                        )
+                    }
+                }
+                dragRefreshOffsetPx = refreshIndicatorHeightPx
+                settleRefresh()
+            }
+        },
     )
 }
 
