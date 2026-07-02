@@ -40,6 +40,7 @@ internal object StoryRevealMotion {
     const val SettleBackMs = 250
     const val AutoExpandDelayMs = 400
     const val TabRefreshExpandMs = 200
+    const val TabRefreshPullMs = 340
     const val RefreshDurationMs = 1200
     const val PushFlingVelocity = 1500f
     // Drag damping: how much the list moves per finger pixel (< 1 = feels natural, not 1:1)
@@ -219,6 +220,16 @@ fun rememberStoryRevealState(
                 isStoryVisible = false
             }
         }
+    }
+
+    suspend fun animateTabRefreshPull() {
+        dragRefreshOffsetPx = 0f
+        refreshOffset.snapTo(0f)
+        refreshOffset.animateTo(
+            refreshIndicatorHeightPx,
+            tween(StoryRevealMotion.TabRefreshPullMs, easing = motionEasing),
+        )
+        dragRefreshOffsetPx = refreshOffset.value
     }
 
     suspend fun settleRefresh() {
@@ -456,7 +467,7 @@ fun rememberStoryRevealState(
                     }
                     else -> animateExpand(StoryRevealMotion.TabRefreshExpandMs)
                 }
-                dragRefreshOffsetPx = refreshIndicatorHeightPx
+                animateTabRefreshPull()
                 settleRefresh()
             }
         },
@@ -535,6 +546,16 @@ fun rememberIntegratedStoryRevealState(
                 expand()
             }
         }
+    }
+
+    suspend fun animateTabRefreshPull() {
+        dragRefreshOffsetPx = 0f
+        refreshOffset.snapTo(0f)
+        refreshOffset.animateTo(
+            refreshIndicatorHeightPx,
+            tween(StoryRevealMotion.TabRefreshPullMs, easing = motionEasing),
+        )
+        dragRefreshOffsetPx = refreshOffset.value
     }
 
     suspend fun settleRefresh() {
@@ -683,7 +704,7 @@ fun rememberIntegratedStoryRevealState(
                         )
                     }
                 }
-                dragRefreshOffsetPx = refreshIndicatorHeightPx
+                animateTabRefreshPull()
                 settleRefresh()
             }
         },

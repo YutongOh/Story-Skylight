@@ -45,6 +45,7 @@
   // tail doesn't blast it open/closed. The actual commit is by direction anyway.
   const SCROLL_SETTLE_IDLE_MS = 150;
   const TAB_REFRESH_EXPAND_MS = 200;
+  const TAB_REFRESH_PULL_MS = 340;
   const FLING_MIN_VELOCITY = 0.06;
   const FLING_FRICTION = 0.88;
   const GESTURE_AXIS_LOCK_PX = 8;
@@ -1109,7 +1110,7 @@
       }
     }
 
-    runTabRefresh() {
+    commitTabRefresh() {
       if (this.isRefreshing) return;
       this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
       this.isRefreshing = true;
@@ -1130,6 +1131,26 @@
           { affectsReveal: false },
         );
       }, cfg.refreshDurationMs ?? 1200);
+    }
+
+    runTabRefresh() {
+      if (this.isRefreshing) return;
+      this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
+      const pullTarget = this.refreshIndicatorHeightPx;
+      if (this.refreshOffset >= pullTarget - 0.5) {
+        this.commitTabRefresh();
+        return;
+      }
+      this.animateValue(
+        () => this.refreshOffset,
+        (v) => {
+          this.refreshOffset = Math.max(0, Math.min(this.refreshMaxPullPx, v));
+        },
+        pullTarget,
+        TAB_REFRESH_PULL_MS,
+        () => this.commitTabRefresh(),
+        { affectsReveal: false, easing: easeOutStandard },
+      );
     }
 
     prepareRefreshPosition(onReady) {
@@ -1174,7 +1195,9 @@
     triggerInboxTabRefresh() {
       if (showFeed || this.isRefreshing || this.isAnimating) return;
       this.prepareRefreshPosition(() => {
-        this.runTabRefresh();
+        requestAnimationFrame(() => {
+          this.runTabRefresh();
+        });
       });
     }
 
