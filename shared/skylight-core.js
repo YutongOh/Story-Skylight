@@ -46,6 +46,8 @@
   const SCROLL_SETTLE_IDLE_MS = 150;
   const TAB_REFRESH_EXPAND_MS = 200;
   const TAB_REFRESH_PULL_MS = 340;
+  const TAB_REFRESH_SEQUENCE_MS = 460;
+  const TAB_REFRESH_PULL_START = 0.58;
   const FLING_MIN_VELOCITY = 0.06;
   const FLING_FRICTION = 0.88;
   const GESTURE_AXIS_LOCK_PX = 8;
@@ -1110,6 +1112,123 @@
       }
     }
 
+    beginTabRefreshSequence() {
+      this.stopFling(false);
+      this.cancelAutoExpand();
+      clearTimeout(this._scrollSettleTimer);
+      this._scrollSettleTimer = null;
+      this._touch = null;
+      this.setGestureActive(false);
+      this.cancelAnim();
+      this.refreshOffset = 0;
+    }
+
+    animateIntegratedTabRefreshSequence() {
+      const list = this.listEl();
+      if (!list) {
+        this.runTabRefresh();
+        return;
+      }
+      const start = list.scrollTop;
+      if (start <= 0.5) {
+        this.runTabRefresh();
+        return;
+      }
+
+      this.beginTabRefreshSequence();
+      list.style.transform = '';
+      this._integratedAnimHiddenPx = null;
+      if (this.mode !== 'locked-integrated') this.storyVisible = true;
+
+      const duration = TAB_REFRESH_SEQUENCE_MS;
+      const pullStart = TAB_REFRESH_PULL_START;
+      const pullTarget = this.refreshIndicatorHeightPx;
+      const startedAt = performance.now();
+
+      this.setAnimating(true);
+      const tick = (now) => {
+        const u = Math.min(1, (now - startedAt) / duration);
+        if (u < pullStart) {
+          const scrollEased = easeOutStandard(u / pullStart);
+          list.scrollTop = Math.round(start * (1 - scrollEased));
+          this.refreshOffset = 0;
+        } else {
+          list.scrollTop = 0;
+          const pullEased = easeOutStandard((u - pullStart) / (1 - pullStart));
+          this.refreshOffset = pullTarget * pullEased;
+        }
+        this.bakeIntegratedHiddenPx(Math.min(list.scrollTop, this.maxPx));
+        this.expanded = list.scrollTop <= 0.5;
+        this.applyVisuals();
+        if (u < 1) {
+          this._animFrame = requestAnimationFrame(tick);
+          return;
+        }
+        this._animFrame = null;
+        this.setAnimating(false);
+        this.commitTabRefresh();
+      };
+      this._animFrame = requestAnimationFrame(tick);
+    }
+
+    animateOverlayTabRefreshSequence() {
+      const list = this.listEl();
+      const listStart = list?.scrollTop ?? 0;
+      const revealStart = this.reveal;
+      const needScroll = listStart > 4;
+      const needExpand = !(this.expanded && this.reveal >= this.maxPx - 0.5);
+
+      if (!needScroll && !needExpand) {
+        this.runTabRefresh();
+        return;
+      }
+
+      this.beginTabRefreshSequence();
+      const duration = TAB_REFRESH_SEQUENCE_MS;
+      const pullStart = TAB_REFRESH_PULL_START;
+      const pullTarget = this.refreshIndicatorHeightPx;
+      const revealTarget = this.maxPx;
+      const fromReleaseHint = cfg.releaseHintEnabled
+        && !cfg.expandOnDrag
+        && revealStart < this.maxPx - 0.5;
+      const startedAt = performance.now();
+
+      this.setAnimating(true);
+      const tick = (now) => {
+        const u = Math.min(1, (now - startedAt) / duration);
+        if (u < pullStart) {
+          const e = easeOutStandard(u / pullStart);
+          if (needScroll && list) list.scrollTop = Math.round(listStart * (1 - e));
+          if (needExpand) {
+            this.reveal = revealStart + (revealTarget - revealStart) * e;
+            this.slideProgress = fromReleaseHint ? 0 : clamp01(this.reveal / this.maxPx);
+            this.storyVisible = this.reveal > 0.5;
+          }
+          this.refreshOffset = 0;
+        } else {
+          if (list) list.scrollTop = 0;
+          if (needExpand) {
+            this.reveal = revealTarget;
+            this.slideProgress = 1;
+            this.expanded = true;
+            this.storyVisible = true;
+            this.hideReleaseHint();
+          }
+          const pullEased = easeOutStandard((u - pullStart) / (1 - pullStart));
+          this.refreshOffset = pullTarget * pullEased;
+        }
+        this.applyVisuals();
+        if (u < 1) {
+          this._animFrame = requestAnimationFrame(tick);
+          return;
+        }
+        this._animFrame = null;
+        this.setAnimating(false);
+        this.commitTabRefresh();
+      };
+      this._animFrame = requestAnimationFrame(tick);
+    }
+
     commitTabRefresh() {
       if (this.isRefreshing) return;
       this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
@@ -1153,52 +1272,19 @@
       );
     }
 
-    prepareRefreshPosition(onReady) {
-      this.stopFling(false);
-      this.cancelAutoExpand();
-      clearTimeout(this._scrollSettleTimer);
-      this._scrollSettleTimer = null;
-      this._touch = null;
-      this.setGestureActive(false);
-
-      const finishIfReady = () => {
-        if (typeof onReady === 'function') onReady();
-      };
-
-      const phase = this.inboxTabRefreshPhase();
-      if (phase === 'expanded') {
-        finishIfReady();
-        return;
-      }
-
-      if (this.isIntegratedMode() || this.mode === 'locked-integrated') {
-        const duration = phase === 'collapsed' ? TAB_REFRESH_EXPAND_MS : MOTION.expandMs;
-        this.animateIntegratedScrollTopTo(0, duration, finishIfReady);
-        return;
-      }
-
-      const afterListScroll = () => {
-        if (this.expanded && this.reveal >= this.maxPx - 0.5) {
-          finishIfReady();
-          return;
-        }
-        this.animateExpand(finishIfReady, TAB_REFRESH_EXPAND_MS);
-      };
-
-      if (phase === 'listScrolled') {
-        this.animateListScrollTo(0, MOTION.settleBackMs, afterListScroll);
-        return;
-      }
-      afterListScroll();
-    }
-
     triggerInboxTabRefresh() {
       if (showFeed || this.isRefreshing || this.isAnimating) return;
-      this.prepareRefreshPosition(() => {
-        requestAnimationFrame(() => {
-          this.runTabRefresh();
-        });
-      });
+      const phase = this.inboxTabRefreshPhase();
+      if (phase === 'expanded') {
+        this.beginTabRefreshSequence();
+        this.runTabRefresh();
+        return;
+      }
+      if (this.isIntegratedMode() || this.mode === 'locked-integrated') {
+        this.animateIntegratedTabRefreshSequence();
+        return;
+      }
+      this.animateOverlayTabRefreshSequence();
     }
 
     settleRefresh() {

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.bytedance.tux.compose.TuxTheme
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,6 +42,8 @@ internal object StoryRevealMotion {
     const val AutoExpandDelayMs = 400
     const val TabRefreshExpandMs = 200
     const val TabRefreshPullMs = 340
+    const val TabRefreshSequenceMs = 460
+    const val TabRefreshPullStart = 0.58f
     const val RefreshDurationMs = 1200
     const val PushFlingVelocity = 1500f
     // Drag damping: how much the list moves per finger pixel (< 1 = feels natural, not 1:1)
@@ -230,6 +233,39 @@ fun rememberStoryRevealState(
             tween(StoryRevealMotion.TabRefreshPullMs, easing = motionEasing),
         )
         dragRefreshOffsetPx = refreshOffset.value
+    }
+
+    suspend fun runOverlayTabRefreshSequence() {
+        val listScrolled = scrollState.value > 0
+        val needExpand = !isExpanded
+        if (!listScrolled && !needExpand) {
+            animateTabRefreshPull()
+            settleRefresh()
+            return
+        }
+        coroutineScope {
+            val seqMs = StoryRevealMotion.TabRefreshSequenceMs
+            val pullDelay = (seqMs * StoryRevealMotion.TabRefreshPullStart).toLong()
+            val jobs = buildList {
+                if (listScrolled) {
+                    add(async {
+                        scrollState.animateScrollTo(
+                            0,
+                            tween(seqMs, easing = motionEasing),
+                        )
+                    })
+                }
+                if (needExpand) {
+                    add(async { animateExpand(seqMs) })
+                }
+                add(async {
+                    delay(pullDelay)
+                    animateTabRefreshPull()
+                })
+            }
+            jobs.forEach { it.await() }
+        }
+        settleRefresh()
     }
 
     suspend fun settleRefresh() {
@@ -453,22 +489,7 @@ fun rememberStoryRevealState(
         triggerTabRefresh = { launchScope ->
             launchScope.launch {
                 if (isRefreshing || isRefreshSettling || isAnimating) return@launch
-                val listScrolled = scrollState.value > 0
-                when {
-                    isExpanded && !listScrolled -> Unit
-                    listScrolled -> {
-                        scrollState.animateScrollTo(
-                            0,
-                            tween(StoryRevealMotion.SettleBackMs, easing = motionEasing),
-                        )
-                        if (!isExpanded) {
-                            animateExpand(StoryRevealMotion.TabRefreshExpandMs)
-                        }
-                    }
-                    else -> animateExpand(StoryRevealMotion.TabRefreshExpandMs)
-                }
-                animateTabRefreshPull()
-                settleRefresh()
+                runOverlayTabRefreshSequence()
             }
         },
     )
@@ -556,6 +577,28 @@ fun rememberIntegratedStoryRevealState(
             tween(StoryRevealMotion.TabRefreshPullMs, easing = motionEasing),
         )
         dragRefreshOffsetPx = refreshOffset.value
+    }
+
+    suspend fun runIntegratedTabRefreshSequence() {
+        if (scrollState.value <= 0) {
+            animateTabRefreshPull()
+            settleRefresh()
+            return
+        }
+        coroutineScope {
+            val seqMs = StoryRevealMotion.TabRefreshSequenceMs
+            val pullDelay = (seqMs * StoryRevealMotion.TabRefreshPullStart).toLong()
+            val pullJob = async {
+                delay(pullDelay)
+                animateTabRefreshPull()
+            }
+            scrollState.animateScrollTo(
+                0,
+                tween(seqMs, easing = motionEasing),
+            )
+            pullJob.await()
+        }
+        settleRefresh()
     }
 
     suspend fun settleRefresh() {
@@ -687,25 +730,7 @@ fun rememberIntegratedStoryRevealState(
         triggerTabRefresh = { launchScope ->
             launchScope.launch {
                 if (isRefreshing || isRefreshSettling || isSettling) return@launch
-                val scrollTop = scrollState.value
-                val collapsedPx = revealHeightPx.toInt()
-                when {
-                    scrollTop <= 0 -> Unit
-                    scrollTop <= collapsedPx + 4 -> {
-                        scrollState.animateScrollTo(
-                            0,
-                            tween(StoryRevealMotion.TabRefreshExpandMs, easing = motionEasing),
-                        )
-                    }
-                    else -> {
-                        scrollState.animateScrollTo(
-                            0,
-                            tween(StoryRevealMotion.ExpandMs, easing = motionEasing),
-                        )
-                    }
-                }
-                animateTabRefreshPull()
-                settleRefresh()
+                runIntegratedTabRefreshSequence()
             }
         },
     )

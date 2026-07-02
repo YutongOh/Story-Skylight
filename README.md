@@ -46,7 +46,7 @@ python3 -m http.server 8770
 
 1. **默认 Feed** — 与 Effect Loading 1.2s 一致
 2. **点 Inbox Tab** — 150ms crossfade 进入 Inbox
-3. **Inbox 页内再点 Inbox Tab** — 按状态触发：已展开 → 仅刷新；已收起 → 快速展开 + 刷新；列表已滚动 → 回顶 + 展开 + 刷新
+3. **Inbox 页内再点 Inbox Tab** — 按状态触发：已展开 → 仅刷新；否则回顶/展开与下拉刷新在一条时间线内衔接（约 58% 处开始下拉）
 4. **V2/V3/V4** — 进入 Inbox 后 400ms 自动展开天窗（V3 需 `startExpanded + autoExpandOnEnter`）
 5. **点 Story 头像** — Story Preview（进度条 + 横滑）
 6. **点 Create（Skylight）** — Add to Story sheet
