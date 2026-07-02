@@ -7,7 +7,7 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '148';
+  const PREVIEW_BUILD = '149';
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },

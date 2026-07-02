@@ -38,8 +38,8 @@ python3 -m http.server 8770
 | 变体 | 模式 | 进入 Inbox | 展开 | 收起 | 特色 |
 |------|------|-----------|------|------|------|
 | **V1** | Integrated（锁定） | 默认已展开 | 不可收起 | — | 天窗随列表滚动，下拉刷新 |
-| **V2** | Overlay | 收起 → 400ms 自动展开 | 拖拽即展开（0dp） | 上滑 ≥16dp | 展开后可链式下拉刷新 |
-| **V3** | Integrated | 收起 → 400ms 自动展开 | 到顶下拉 ≥32dp | 上滑 ≥16dp | 整页滚动 + 半展开回弹 |
+| **V2** | Overlay | 收起 → 400ms 自动展开 | 拖拽即展开（0dp） | 上滑 ≥12dp | 展开后可链式下拉刷新 |
+| **V3** | Integrated | 收起 → 400ms 自动展开 | 松手 visible ≥48dp | 上滑 ≥12dp | 拖动预览 118dp + 半展开回弹 |
 | **V4** | Overlay | 收起 → 400ms 自动展开 | 下拉 ≥24dp 松手 | 上滑 ≥30dp | Story slide + Release hint |
 
 ## 交互流程
@@ -79,5 +79,5 @@ story-skylight-v123-demo/
 - 设计帧：360×800
 - Reveal：`MaxHeight=118dp`；V2/V3 `maxPull=118dp`；V1/V4 `maxPull=72dp`
 - 动效：`ExpandMs=450`，`CollapseMs=350`，`SettleBackMs=250`，`AutoExpandDelayMs=400`
-- 阈值：V2/V3 `PushThreshold=16dp`；V1/V4 `PushThreshold=30dp`；V3 `PullThreshold=32dp`；V1/V4 `PullThreshold=24dp`（V2 展开为 0）
-- V3 预览壳双指滚动：`wheelScrollDamping=0.72`（Web 专用）；`expandOnDrag=false` 时拖动最多露出 `PullThreshold`，松手后再判定展开/回弹
+- 阈值：V2/V3 `PushThreshold=12dp`；V1/V4 `PushThreshold=30dp`；V3 `PullThreshold=48dp`（松手展开）、`maxPullDistance=118dp`（拖动预览上限）；V1/V4 `PullThreshold=24dp`（V2 展开为 0）
+- V3 预览壳双指滚动：`wheelScrollDamping=0.72`（Web 专用）；Integrated 拖动预览上限由 `maxPullDistance` 控制，松手展开由 `pullThreshold` 判定

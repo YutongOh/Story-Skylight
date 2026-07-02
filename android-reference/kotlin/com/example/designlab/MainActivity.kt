@@ -277,7 +277,7 @@ class MainActivity : AppCompatActivity() {
             StorySkylightFlowScreen(
                 onBack = onBack,
                 pullThreshold = 0.dp,
-                pushThreshold = 16.dp,
+                pushThreshold = 12.dp,
                 storySlideEnabled = false,
                 expandOnDrag = true,
                 autoExpandOnEnter = true,
@@ -291,8 +291,9 @@ class MainActivity : AppCompatActivity() {
         ) { onBack ->
             StorySkylightFlowScreen(
                 onBack = onBack,
-                pullThreshold = 32.dp,
-                pushThreshold = 16.dp,
+                pullThreshold = 48.dp,
+                pushThreshold = 12.dp,
+                maxPullDistance = StoryRevealMotion.MaxHeight,
                 storySlideEnabled = false,
                 expandOnDrag = false,
                 startExpanded = true,

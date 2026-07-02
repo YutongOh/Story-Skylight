@@ -40,14 +40,13 @@
   // ahead of the finger (the "stutters then collapses" bug). Trackpad inertia
   // and slow manual scrolls both stay well under this.
   const WHEEL_IDLE_MS = 260;
-  const REFRESH_WHEEL_IDLE_MS = 220;
+  const REFRESH_WHEEL_IDLE_MS = 48;
   // Damp how much raw wheel distance moves the reveal, so a fast flick's inertia
   // tail doesn't blast it open/closed. The actual commit is by direction anyway.
   const SCROLL_SETTLE_IDLE_MS = 150;
   const TAB_REFRESH_EXPAND_MS = 200;
   const TAB_REFRESH_PULL_MS = 340;
   const TAB_REFRESH_SEQUENCE_MS = 460;
-  const TAB_REFRESH_PULL_START = 0.58;
   const FLING_MIN_VELOCITY = 0.06;
   const FLING_FRICTION = 0.88;
   const GESTURE_AXIS_LOCK_PX = 8;
@@ -178,6 +177,7 @@
       this._scrollSettleTimer = null;
       this._scrollListenerBound = false;
       this._wheelSettleTimer = null;
+      this._refreshCompleteTimer = null;
       this._flingFrame = null;
       this._integratedAnimHiddenPx = null;
       this.wheelScrollDamping = cfg.wheelScrollDamping ?? 1;
@@ -347,7 +347,7 @@
 
     integratedPullCapScrollTop() {
       if (cfg.expandOnDrag === true || cfg.lockStoryExpanded) return 0;
-      return Math.max(0, this.maxPx - this.pullThresholdPx);
+      return Math.max(0, this.maxPx - this.maxPullPx);
     }
 
     clampIntegratedPullDuringDrag(down) {
@@ -437,6 +437,8 @@
       this._animFrame = null;
       clearTimeout(this._wheelSettleTimer);
       this._wheelSettleTimer = null;
+      clearTimeout(this._refreshCompleteTimer);
+      this._refreshCompleteTimer = null;
       clearTimeout(this._scrollSettleTimer);
       this._scrollSettleTimer = null;
       this.stopFling(false);
@@ -1141,22 +1143,15 @@
       if (this.mode !== 'locked-integrated') this.storyVisible = true;
 
       const duration = TAB_REFRESH_SEQUENCE_MS;
-      const pullStart = TAB_REFRESH_PULL_START;
       const pullTarget = this.refreshIndicatorHeightPx;
       const startedAt = performance.now();
 
       this.setAnimating(true);
       const tick = (now) => {
         const u = Math.min(1, (now - startedAt) / duration);
-        if (u < pullStart) {
-          const scrollEased = easeOutStandard(u / pullStart);
-          list.scrollTop = Math.round(start * (1 - scrollEased));
-          this.refreshOffset = 0;
-        } else {
-          list.scrollTop = 0;
-          const pullEased = easeOutStandard((u - pullStart) / (1 - pullStart));
-          this.refreshOffset = pullTarget * pullEased;
-        }
+        const e = easeOutStandard(u);
+        list.scrollTop = Math.round(start * (1 - e));
+        this.refreshOffset = pullTarget * e;
         this.bakeIntegratedHiddenPx(Math.min(list.scrollTop, this.maxPx));
         this.expanded = list.scrollTop <= 0.5;
         this.applyVisuals();
@@ -1185,7 +1180,6 @@
 
       this.beginTabRefreshSequence();
       const duration = TAB_REFRESH_SEQUENCE_MS;
-      const pullStart = TAB_REFRESH_PULL_START;
       const pullTarget = this.refreshIndicatorHeightPx;
       const revealTarget = this.maxPx;
       const fromReleaseHint = cfg.releaseHintEnabled
@@ -1196,27 +1190,18 @@
       this.setAnimating(true);
       const tick = (now) => {
         const u = Math.min(1, (now - startedAt) / duration);
-        if (u < pullStart) {
-          const e = easeOutStandard(u / pullStart);
-          if (needScroll && list) list.scrollTop = Math.round(listStart * (1 - e));
-          if (needExpand) {
-            this.reveal = revealStart + (revealTarget - revealStart) * e;
-            this.slideProgress = fromReleaseHint ? 0 : clamp01(this.reveal / this.maxPx);
-            this.storyVisible = this.reveal > 0.5;
-          }
-          this.refreshOffset = 0;
-        } else {
-          if (list) list.scrollTop = 0;
-          if (needExpand) {
-            this.reveal = revealTarget;
-            this.slideProgress = 1;
+        const e = easeOutStandard(u);
+        if (needScroll && list) list.scrollTop = Math.round(listStart * (1 - e));
+        if (needExpand) {
+          this.reveal = revealStart + (revealTarget - revealStart) * e;
+          this.slideProgress = fromReleaseHint ? 0 : clamp01(this.reveal / this.maxPx);
+          this.storyVisible = this.reveal > 0.5;
+          if (u >= 1) {
             this.expanded = true;
-            this.storyVisible = true;
             this.hideReleaseHint();
           }
-          const pullEased = easeOutStandard((u - pullStart) / (1 - pullStart));
-          this.refreshOffset = pullTarget * pullEased;
         }
+        this.refreshOffset = pullTarget * e;
         this.applyVisuals();
         if (u < 1) {
           this._animFrame = requestAnimationFrame(tick);
@@ -1229,14 +1214,10 @@
       this._animFrame = requestAnimationFrame(tick);
     }
 
-    commitTabRefresh() {
-      if (this.isRefreshing) return;
-      this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
-      this.isRefreshing = true;
-      this.refreshLooping = true;
-      this.refreshOffset = this.refreshIndicatorHeightPx;
-      this.applyVisuals();
-      setTimeout(() => {
+    scheduleRefreshComplete() {
+      clearTimeout(this._refreshCompleteTimer);
+      this._refreshCompleteTimer = setTimeout(() => {
+        this._refreshCompleteTimer = null;
         this.animateValue(
           () => this.refreshOffset,
           (v) => { this.refreshOffset = Math.max(0, Math.min(this.refreshIndicatorHeightPx, v)); },
@@ -1252,12 +1233,26 @@
       }, cfg.refreshDurationMs ?? 1200);
     }
 
+    commitTabRefresh() {
+      this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
+      this.isRefreshing = true;
+      this.refreshLooping = true;
+      this.refreshOffset = this.refreshIndicatorHeightPx;
+      this.applyVisuals();
+      this.scheduleRefreshComplete();
+    }
+
     runTabRefresh() {
       if (this.isRefreshing) return;
       this._refreshVisualCache = { height: -1, progress: -1, opacity: -1, refreshing: false };
       const pullTarget = this.refreshIndicatorHeightPx;
+      this.isRefreshing = true;
+      this.refreshLooping = true;
+      this.applyVisuals();
       if (this.refreshOffset >= pullTarget - 0.5) {
-        this.commitTabRefresh();
+        this.refreshOffset = pullTarget;
+        this.applyVisuals();
+        this.scheduleRefreshComplete();
         return;
       }
       this.animateValue(
@@ -1267,7 +1262,11 @@
         },
         pullTarget,
         TAB_REFRESH_PULL_MS,
-        () => this.commitTabRefresh(),
+        () => {
+          this.refreshOffset = pullTarget;
+          this.applyVisuals();
+          this.scheduleRefreshComplete();
+        },
         { affectsReveal: false, easing: easeOutStandard },
       );
     }
@@ -1682,10 +1681,11 @@
       }
       this.moveBy(delta);
       clearTimeout(this._wheelSettleTimer);
-      const atRefreshCap = this.refreshOffset >= this.refreshMaxPullPx - 0.5;
-      const idleMs = this.refreshOffset > 0
-        ? (atRefreshCap ? WHEEL_IDLE_MS : REFRESH_WHEEL_IDLE_MS)
-        : WHEEL_IDLE_MS;
+      if (!this.isRefreshing && delta > 0 && this.refreshOffset >= this.refreshThresholdPx) {
+        this.endGesture();
+        return;
+      }
+      const idleMs = this.refreshOffset > 0 ? REFRESH_WHEEL_IDLE_MS : WHEEL_IDLE_MS;
       this._wheelSettleTimer = setTimeout(() => this.endGesture(), idleMs);
     }
   }

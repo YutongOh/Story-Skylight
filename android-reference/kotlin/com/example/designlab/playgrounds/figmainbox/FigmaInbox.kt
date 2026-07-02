@@ -259,10 +259,12 @@ private fun FigmaInboxScreenContent(
                     scrollState = scrollState,
                     pullThreshold = pullThreshold,
                     pushThreshold = pushThreshold,
+                    maxPullDistance = maxPullDistance,
                     startExpanded = startExpanded,
                     autoExpandOnEnter = autoExpandOnEnter,
                     inboxActive = inboxActive,
                     lockExpanded = lockStoryExpanded,
+                    expandOnDrag = expandOnDrag,
                 )
                 inboxTabRefresh = storyReveal.triggerTabRefresh
                 Box(

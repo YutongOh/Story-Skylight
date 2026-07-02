@@ -32,7 +32,7 @@ VARIANTS = {
     },
     "v2": {
         "label": "V2",
-        "pushThreshold": 16,
+        "pushThreshold": 12,
         "pullThreshold": 0,
         "maxPullDistance": 118,
         "expandOnDrag": True,
@@ -46,8 +46,8 @@ VARIANTS = {
     },
     "v3": {
         "label": "V3",
-        "pushThreshold": 16,
-        "pullThreshold": 32,
+        "pushThreshold": 12,
+        "pullThreshold": 48,
         "maxPullDistance": 118,
         "expandOnDrag": False,
         "storySlideEnabled": False,
@@ -771,7 +771,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=77"></script>
+  <script src="../../shared/skylight-core.js?v=81"></script>
 </body>
 </html>"""
 
@@ -952,7 +952,7 @@ def write_preview_shell() -> None:
     </main>
   </div>
   <div id="touch-cursor" aria-hidden="true"></div>
-  <script src="preview.js?v=38"></script>
+  <script src="preview.js?v=39"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")
@@ -989,7 +989,7 @@ def write_preview_shell() -> None:
         "    els.variantSelect.value = variantId;\n    if (els.variantCaption) els.variantCaption.textContent = meta.label;\n    updateUrl(variantId);",
     ).replace(
         "const PREVIEW_BUILD = '3';",
-        "const PREVIEW_BUILD = '140';",
+        "const PREVIEW_BUILD = '149';",
     )
     preview_js_path = OUT / "preview.js"
     if not preview_js_path.is_file():

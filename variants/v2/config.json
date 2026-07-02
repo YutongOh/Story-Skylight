@@ -6,7 +6,7 @@
   "autoExpandDelayMs": 400,
   "pushFlingVelocity": 1500,
   "pullDamping": 0.65,
-  "pushThreshold": 16,
+  "pushThreshold": 12,
   "maxHeight": 118,
   "refreshThreshold": 32,
   "refreshIndicatorHeight": 56,

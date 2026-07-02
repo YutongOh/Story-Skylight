@@ -43,7 +43,6 @@ internal object StoryRevealMotion {
     const val TabRefreshExpandMs = 200
     const val TabRefreshPullMs = 340
     const val TabRefreshSequenceMs = 460
-    const val TabRefreshPullStart = 0.58f
     const val RefreshDurationMs = 1200
     const val PushFlingVelocity = 1500f
     // Drag damping: how much the list moves per finger pixel (< 1 = feels natural, not 1:1)
@@ -225,12 +224,12 @@ fun rememberStoryRevealState(
         }
     }
 
-    suspend fun animateTabRefreshPull() {
+    suspend fun animateTabRefreshPull(durationMs: Int = StoryRevealMotion.TabRefreshPullMs) {
         dragRefreshOffsetPx = 0f
         refreshOffset.snapTo(0f)
         refreshOffset.animateTo(
             refreshIndicatorHeightPx,
-            tween(StoryRevealMotion.TabRefreshPullMs, easing = motionEasing),
+            tween(durationMs, easing = motionEasing),
         )
         dragRefreshOffsetPx = refreshOffset.value
     }
@@ -245,7 +244,6 @@ fun rememberStoryRevealState(
         }
         coroutineScope {
             val seqMs = StoryRevealMotion.TabRefreshSequenceMs
-            val pullDelay = (seqMs * StoryRevealMotion.TabRefreshPullStart).toLong()
             val jobs = buildList {
                 if (listScrolled) {
                     add(async {
@@ -258,10 +256,7 @@ fun rememberStoryRevealState(
                 if (needExpand) {
                     add(async { animateExpand(seqMs) })
                 }
-                add(async {
-                    delay(pullDelay)
-                    animateTabRefreshPull()
-                })
+                add(async { animateTabRefreshPull(seqMs) })
             }
             jobs.forEach { it.await() }
         }
@@ -500,15 +495,21 @@ fun rememberIntegratedStoryRevealState(
     scrollState: ScrollState,
     pullThreshold: Dp = StoryRevealMotion.PullThreshold,
     pushThreshold: Dp = StoryRevealMotion.PushThreshold,
+    maxPullDistance: Dp = StoryRevealMotion.MaxHeight,
     startExpanded: Boolean = true,
     autoExpandOnEnter: Boolean = false,
     inboxActive: Boolean = true,
     lockExpanded: Boolean = false,
+    expandOnDrag: Boolean = false,
 ): IntegratedStoryRevealState {
     val density = LocalDensity.current
     val revealHeightPx = with(density) { StoryRevealMotion.MaxHeight.toPx() }
     val pullThresholdPx = with(density) { pullThreshold.toPx() }
     val pushThresholdPx = with(density) { pushThreshold.toPx() }
+    val maxPullPx = with(density) { maxPullDistance.toPx() }
+    val minHiddenPxForPullCap = (revealHeightPx - maxPullPx)
+        .toInt()
+        .coerceIn(0, revealHeightPx.toInt())
     val refreshThresholdPx = with(density) { StoryRevealMotion.RefreshThreshold.toPx() }
     val refreshIndicatorHeightPx = with(density) { StoryRevealMotion.RefreshIndicatorHeight.toPx() }
     val refreshMaxPullPx = with(density) { StoryRevealMotion.RefreshMaxPullDistance.toPx() }
@@ -569,12 +570,12 @@ fun rememberIntegratedStoryRevealState(
         }
     }
 
-    suspend fun animateTabRefreshPull() {
+    suspend fun animateTabRefreshPull(durationMs: Int = StoryRevealMotion.TabRefreshPullMs) {
         dragRefreshOffsetPx = 0f
         refreshOffset.snapTo(0f)
         refreshOffset.animateTo(
             refreshIndicatorHeightPx,
-            tween(StoryRevealMotion.TabRefreshPullMs, easing = motionEasing),
+            tween(durationMs, easing = motionEasing),
         )
         dragRefreshOffsetPx = refreshOffset.value
     }
@@ -587,15 +588,14 @@ fun rememberIntegratedStoryRevealState(
         }
         coroutineScope {
             val seqMs = StoryRevealMotion.TabRefreshSequenceMs
-            val pullDelay = (seqMs * StoryRevealMotion.TabRefreshPullStart).toLong()
-            val pullJob = async {
-                delay(pullDelay)
-                animateTabRefreshPull()
+            val scrollJob = async {
+                scrollState.animateScrollTo(
+                    0,
+                    tween(seqMs, easing = motionEasing),
+                )
             }
-            scrollState.animateScrollTo(
-                0,
-                tween(seqMs, easing = motionEasing),
-            )
+            val pullJob = async { animateTabRefreshPull(seqMs) }
+            scrollJob.await()
             pullJob.await()
         }
         settleRefresh()
@@ -686,6 +686,14 @@ fun rememberIntegratedStoryRevealState(
     }
 
     var wasScrolling by remember { mutableStateOf(false) }
+    LaunchedEffect(scrollState.value, scrollState.isScrollInProgress, expandOnDrag, lockExpanded) {
+        if (expandOnDrag || lockExpanded || isSettling || isRefreshing || isRefreshSettling) return@LaunchedEffect
+        if (!scrollState.isScrollInProgress || !lastDragDown) return@LaunchedEffect
+        val hiddenPx = scrollState.value
+        if (hiddenPx in 1 until minHiddenPxForPullCap) {
+            scrollState.scrollTo(minHiddenPxForPullCap)
+        }
+    }
     LaunchedEffect(scrollState.isScrollInProgress) {
         if (wasScrolling && !scrollState.isScrollInProgress) {
             val hiddenPx = scrollState.value.coerceIn(0, revealHeightPx.toInt())
