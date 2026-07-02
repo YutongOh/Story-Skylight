@@ -22,7 +22,7 @@
   "effectCoverLoadMs": 1200,
   "albumEmergenceMs": 160,
   "label": "V3",
-  "pullThreshold": 24,
+  "pullThreshold": 32,
   "maxPullDistance": 118,
   "expandOnDrag": false,
   "storySlideEnabled": false,

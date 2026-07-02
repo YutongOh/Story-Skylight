@@ -47,7 +47,7 @@ VARIANTS = {
     "v3": {
         "label": "V3",
         "pushThreshold": 16,
-        "pullThreshold": 24,
+        "pullThreshold": 32,
         "maxPullDistance": 118,
         "expandOnDrag": False,
         "storySlideEnabled": False,
