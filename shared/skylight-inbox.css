@@ -220,7 +220,8 @@
   will-change: opacity;
 }
 
-.inbox-reveal-root.mode-integrated .story-reveal-slot {
+.inbox-reveal-root.mode-integrated .story-reveal-slot .skylight-row-inner,
+.inbox-reveal-root.mode-integrated .story-reveal-slot .skylight-row {
   -webkit-mask-mode: alpha;
   mask-mode: alpha;
 }

@@ -796,13 +796,14 @@ fun InboxStoryRevealSlot(
     }
 }
 
-internal fun integratedStoryEdgeFadeEndFraction(progress: Float, maxHeightPx: Float): Float? {
+internal fun integratedStoryEdgeFadeStops(progress: Float, maxHeightPx: Float): Pair<Float, Float>? {
     if (progress <= 0.001f || progress >= 0.999f) return null
-    val boundaryPct = progress * 100f
+    val hiddenPct = (1f - progress) * 100f
     val maxFadeBandPct = minOf(34f, maxOf(12f, (40f / maxHeightPx) * 100f))
     val fadeBandPct = maxFadeBandPct * (1f - progress)
     if (fadeBandPct < 0.05f) return null
-    return minOf(boundaryPct, fadeBandPct) / 100f
+    val fadeEndPct = minOf(100f, hiddenPct + fadeBandPct)
+    return hiddenPct / 100f to fadeEndPct / 100f
 }
 
 fun Modifier.integratedStoryEdgeFadeMask(
@@ -811,14 +812,16 @@ fun Modifier.integratedStoryEdgeFadeMask(
     enabled: Boolean = true,
 ): Modifier {
     if (!enabled) return this
-    val fadeEndFraction = integratedStoryEdgeFadeEndFraction(progress, maxHeightPx) ?: return this
+    val stops = integratedStoryEdgeFadeStops(progress, maxHeightPx) ?: return this
+    val (hiddenFraction, fadeEnd) = stops
     return drawWithContent {
         drawContent()
         drawRect(
             brush = Brush.verticalGradient(
                 colorStops = arrayOf(
                     0f to Color.Transparent,
-                    fadeEndFraction to Color.Black,
+                    hiddenFraction to Color.Transparent,
+                    fadeEnd to Color.Black,
                     1f to Color.Black,
                 ),
                 startY = 0f,
