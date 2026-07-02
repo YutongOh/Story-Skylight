@@ -292,6 +292,14 @@ class MainActivity : AppCompatActivity() {
             StorySkylightFlowScreen(
                 onBack = onBack,
                 pullThreshold = 32.dp,
+                pushThreshold = 16.dp,
+                storySlideEnabled = false,
+                expandOnDrag = false,
+                startExpanded = true,
+                autoExpandOnEnter = true,
+                startOnFeed = true,
+                enableCreateNavigation = true,
+                topDownStoryRevealEnabled = true,
             )
         })
         PlaygroundRegistry.register(PlaygroundEntry.composable(
