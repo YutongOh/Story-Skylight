@@ -7,7 +7,7 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '152';
+  const PREVIEW_BUILD = '153';
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
@@ -39,6 +39,9 @@
   let demoRunning = false;
   let demoCursorClientX = null;
   let demoCursorClientY = null;
+  let activeDemoToken = null;
+  const demoWaitCancelers = new Set();
+  const DEMO_CANCELLED = 'DEMO_CANCELLED';
 
   function parseVariantFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -171,7 +174,23 @@
     }
   }
 
-  function reloadDemo() {
+  function cancelDemoSequence() {
+    if (!demoRunning && activeDemoToken == null) return;
+    activeDemoToken = null;
+    demoRunning = false;
+    demoWaitCancelers.forEach((cancel) => cancel());
+    demoWaitCancelers.clear();
+    postToFrame('skylight:preview-gesture-active', { active: false });
+    document.body.classList.remove('is-demo-running');
+    if (els.demoBtn) {
+      els.demoBtn.disabled = false;
+      els.demoBtn.classList.remove('is-active');
+    }
+    els.cursor?.classList.remove('visible', 'is-down');
+  }
+
+  function reloadDemo(options = {}) {
+    if (!options.fromDemo) cancelDemoSequence();
     try {
       els.frame.contentWindow.postMessage({ type: 'skylight:reload' }, '*');
     } catch (_) {
@@ -393,7 +412,27 @@
   }
 
   function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    const token = activeDemoToken;
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let cancel = null;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        if (cancel) demoWaitCancelers.delete(cancel);
+        if (token != null && token !== activeDemoToken) {
+          reject(new Error(DEMO_CANCELLED));
+          return;
+        }
+        resolve();
+      };
+      const timeout = setTimeout(finish, ms);
+      if (token != null) {
+        cancel = finish;
+        demoWaitCancelers.add(cancel);
+      }
+    });
   }
 
   function frameToClient(x, y) {
@@ -557,7 +596,7 @@
   }
 
   async function resetForDemo() {
-    reloadDemo();
+    reloadDemo({ fromDemo: true });
     await waitForFrameReady();
   }
 
@@ -609,6 +648,7 @@
   async function runDemoSequence() {
     if (demoRunning) return;
     demoRunning = true;
+    activeDemoToken = {};
     document.body.classList.add('is-demo-running', 'has-touch-cursor');
     if (els.demoBtn) {
       els.demoBtn.disabled = true;
@@ -622,12 +662,17 @@
       } else {
         await runBasicDemo();
       }
+    } catch (err) {
+      if (err?.message !== DEMO_CANCELLED) throw err;
     } finally {
-      demoRunning = false;
-      document.body.classList.remove('is-demo-running');
-      if (els.demoBtn) {
-        els.demoBtn.disabled = false;
-        els.demoBtn.classList.remove('is-active');
+      if (activeDemoToken != null) {
+        activeDemoToken = null;
+        demoRunning = false;
+        document.body.classList.remove('is-demo-running');
+        if (els.demoBtn) {
+          els.demoBtn.disabled = false;
+          els.demoBtn.classList.remove('is-active');
+        }
       }
       els.cursor?.classList.remove('is-down');
     }
