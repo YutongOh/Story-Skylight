@@ -226,6 +226,14 @@
   mask-mode: alpha;
 }
 
+.integrated-mask-disabled .inbox-reveal-root.mode-integrated .story-reveal-slot .skylight-row-inner,
+.integrated-mask-disabled .inbox-reveal-root.mode-integrated .story-reveal-slot .skylight-row {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  -webkit-mask-mode: match-source !important;
+  mask-mode: match-source !important;
+}
+
 .inbox-reveal-root.mode-overlay .story-reveal-slot {
   -webkit-mask-mode: alpha;
   mask-mode: alpha;

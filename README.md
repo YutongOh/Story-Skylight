@@ -33,13 +33,18 @@ python3 -m http.server 8770
 - 列表入口：http://127.0.0.1:8770/index.html
 - 桌面预览：**鼠标拖拽**模拟触摸滑动，**单击**触发按钮；鼠标进入手机区域显示触控小球
 
+## V2 / V3 展开收起（详细）
+
+完整说明（阈值、时序、链式刷新、半展开回弹）：
+[`playgrounds/.../figmainbox/STORY_SKYLIGHT_V2_V3_EXPAND_COLLAPSE.md`](../../playgrounds/src/main/java/com/example/designlab/playgrounds/figmainbox/STORY_SKYLIGHT_V2_V3_EXPAND_COLLAPSE.md)
+
 ## 四组差异（与 Android 对齐）
 
 | 变体 | 模式 | 进入 Inbox | 展开 | 收起 | 特色 |
 |------|------|-----------|------|------|------|
 | **V1** | Integrated（锁定） | 默认已展开 | 不可收起 | — | 天窗随列表滚动，下拉刷新 |
 | **V2** | Overlay | 收起 → 400ms 自动展开 | 拖拽即展开（0dp） | 上滑 ≥12dp | 展开后可链式下拉刷新 |
-| **V3** | Integrated | 收起 → 400ms 自动展开 | 松手 visible ≥48dp | 上滑 ≥12dp | 拖动预览 118dp + 半展开回弹 |
+| **V3** | Integrated | 收起 → 400ms 自动展开 | 拖拽即展开（0dp） | 上滑 ≥12dp | Integrated 层级 + 链式刷新 |
 | **V4** | Overlay | 收起 → 400ms 自动展开 | 下拉 ≥24dp 松手 | 上滑 ≥30dp | Story slide + Release hint |
 
 ## 交互流程
@@ -79,5 +84,4 @@ story-skylight-v123-demo/
 - 设计帧：360×800
 - Reveal：`MaxHeight=118dp`；V2/V3 `maxPull=118dp`；V1/V4 `maxPull=72dp`
 - 动效：`ExpandMs=450`，`CollapseMs=350`，`SettleBackMs=250`，`AutoExpandDelayMs=400`
-- 阈值：V2/V3 `PushThreshold=12dp`；V1/V4 `PushThreshold=30dp`；V3 `PullThreshold=48dp`（松手展开）、`maxPullDistance=118dp`（拖动预览上限）；V1/V4 `PullThreshold=24dp`（V2 展开为 0）
-- V3 预览壳双指滚动：`wheelScrollDamping=0.72`（Web 专用）；Integrated 拖动预览上限由 `maxPullDistance` 控制，松手展开由 `pullThreshold` 判定
+- 阈值：V2/V3 均为 `PullThreshold=0dp`、`PushThreshold=12dp`；V1/V4 `PullThreshold=24dp`、`PushThreshold=30dp`

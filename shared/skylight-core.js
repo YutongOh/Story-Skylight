@@ -33,6 +33,10 @@
     startOnFeed: cfg.startOnFeed !== false,
     id: cfg.id || '',
   };
+  const USE_INTEGRATED_SLIDE_REVEAL = cfg.integratedSlideReveal === true || VARIANT.id === 'v3';
+  const AUTO_EXPAND_ONCE_PER_RUN = cfg.autoExpandOncePerRun === true;
+  document.documentElement.dataset.skylightVariant = VARIANT.id;
+  document.documentElement.classList.toggle('integrated-mask-disabled', cfg.integratedMaskEnabled === false);
 
   // A wheel "stream" is a burst of events spaced closer than this. It must be
   // larger than the gap between events of a SLOW manual scroll, otherwise the
@@ -82,6 +86,7 @@
   };
 
   let showFeed = VARIANT.startOnFeed;
+  let autoExpandEntryConsumed = false;
   let showAlbum = false;
   let readLabels = new Set();
   let skylightOrder = ['Lindsey', 'Maren', 'Alena', 'Rayna'];
@@ -91,6 +96,11 @@
     { label: 'Alena', avatar: 'inbox_story_alena.png' },
     { label: 'Rayna', avatar: 'inbox_story_rayna.png' },
   ];
+  let allReadAutoCollapseEligible = false;
+  let manualCollapseAfterAllRead = false;
+  let allReadHintActive = false;
+  let allReadHintTextSuppressed = false;
+  let allReadHintGestureOffsetPx = 0;
   const ASSET = '../../shared/assets/inbox/';
   let effectCoverTimer = null;
   let effectCoverLoadStarted = false;
@@ -112,6 +122,120 @@
 
   function easeInOutCubic(t) {
     return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function allReadAutoCollapseEnabled() {
+    return cfg.allReadAutoCollapseEnabled === true;
+  }
+
+  function allOtherStoriesRead() {
+    return SKYLIGHT_META.every(({ label }) => readLabels.has(label));
+  }
+
+  function resetAllReadAutoCollapseState() {
+    allReadAutoCollapseEligible = false;
+    manualCollapseAfterAllRead = false;
+    allReadHintActive = false;
+    allReadHintTextSuppressed = false;
+    allReadHintGestureOffsetPx = 0;
+  }
+
+  function noteAllReadReached() {
+    if (!allReadAutoCollapseEnabled() || !allOtherStoriesRead()) return;
+    allReadAutoCollapseEligible = true;
+    manualCollapseAfterAllRead = false;
+  }
+
+  function noteManualAllReadCollapse() {
+    if (!allReadAutoCollapseEnabled() || !allOtherStoriesRead()) return;
+    if (allReadHintActive && allReadHintTextSuppressed) return;
+    manualCollapseAfterAllRead = true;
+    allReadAutoCollapseEligible = false;
+    allReadHintActive = false;
+    allReadHintTextSuppressed = false;
+    allReadHintGestureOffsetPx = 0;
+  }
+
+  function clearAllReadHint() {
+    if (!allReadHintActive && !allReadHintTextSuppressed && allReadHintGestureOffsetPx <= 0) return;
+    allReadHintActive = false;
+    allReadHintTextSuppressed = false;
+    allReadHintGestureOffsetPx = 0;
+    if (!els.storyReleaseHint) return;
+    els.storyReleaseHint.style.opacity = '0';
+    els.storyReleaseHint.style.height = '0px';
+    els.storyReleaseHint.style.background = '';
+    els.storyReleaseHint.style.zIndex = '';
+  }
+
+  function allReadCollapsedHintHeight() {
+    return cfg.allReadCollapsedHintHeight ?? 32;
+  }
+
+  function allReadCollapsedHintVisible() {
+    return cfg.allReadCollapsedHintEnabled === true
+      && allReadHintActive
+      && !allReadHintTextSuppressed
+      && !showFeed
+      && !reveal.isSkylightSubstantiallyOpen()
+      && !reveal.isAnimating
+      && reveal.refreshOffset <= 0.5;
+  }
+
+  function allReadCollapsedHintOffset() {
+    return allReadCollapsedHintVisible() ? allReadCollapsedHintHeight() : allReadHintGestureOffsetPx;
+  }
+
+  function consumeAllReadHintGestureOffset(controller) {
+    if (allReadHintGestureOffsetPx <= 0 || !controller) return;
+    const offset = allReadHintGestureOffsetPx;
+    if (controller.usesIntegratedSlideReveal?.()) {
+      controller.integratedRevealPx = Math.min(controller.maxPx, controller.integratedRevealPx + offset);
+    } else if (controller.usesOverlayVisuals?.()) {
+      controller.reveal = Math.min(controller.maxPx, controller.reveal + offset);
+      controller.slideProgress = clamp01(controller.reveal / controller.maxPx);
+      controller.storyVisible = controller.reveal > 0.5;
+    }
+    clearAllReadHint();
+  }
+
+  function beginAllReadHintGestureBaseline() {
+    if (!allReadCollapsedHintVisible()) return;
+    allReadHintTextSuppressed = true;
+    allReadHintGestureOffsetPx = allReadCollapsedHintHeight();
+    if (!els.storyReleaseHint) return;
+    els.storyReleaseHint.style.opacity = '0';
+    els.storyReleaseHint.style.height = '0px';
+    els.storyReleaseHint.style.background = '';
+    els.storyReleaseHint.style.zIndex = '';
+  }
+
+  function restoreAllReadHintIfCollapsed() {
+    if (!allReadHintActive || !allReadHintTextSuppressed) return;
+    if (showFeed || reveal.isSkylightSubstantiallyOpen() || reveal.isAnimating || reveal.refreshOffset > 0.5) return;
+    allReadHintTextSuppressed = false;
+    allReadHintGestureOffsetPx = 0;
+    applyAllReadCollapsedHint();
+  }
+
+  function applyAllReadCollapsedHint() {
+    const hint = els.storyReleaseHint;
+    if (!hint) return;
+    const visible = allReadCollapsedHintVisible();
+    if (visible) {
+      hint.textContent = cfg.allReadCollapsedHintText || 'Release to show Story';
+      hint.style.height = `${allReadCollapsedHintHeight()}px`;
+      hint.style.opacity = '1';
+      hint.style.background = 'var(--inbox-page)';
+      hint.style.zIndex = '5';
+      return;
+    }
+    if (!allReadHintActive || showFeed || reveal.isSkylightSubstantiallyOpen()) {
+      hint.style.opacity = '0';
+      hint.style.height = '0px';
+      hint.style.background = '';
+      hint.style.zIndex = '';
+    }
   }
 
   function cubicBezier(x1, y1, x2, y2) {
@@ -157,6 +281,7 @@
           : 'overlay';
       const autoStartsCollapsed = cfg.autoExpandOnEnter === true;
       this.reveal = cfg.startExpanded && !autoStartsCollapsed ? this.maxPx : 0;
+      this.integratedRevealPx = cfg.startExpanded && !autoStartsCollapsed ? this.maxPx : 0;
       this.refreshOffset = 0;
       this.expanded = this.isIntegratedMode()
         ? this.integratedExpanded()
@@ -172,6 +297,8 @@
       this._autoExpandTimer = null;
       this._autoExpandFrame = null;
       this._animFrame = null;
+      this._integratedOpacityFrame = null;
+      this._integratedOpacityProgress = null;
       this._touch = null;
       this._activeTouchId = null;
       this._scrollSettleTimer = null;
@@ -189,11 +316,22 @@
       return this.mode === 'integrated' || this.mode === 'locked-integrated';
     }
 
+    usesIntegratedSlideReveal() {
+      return this.mode === 'integrated' && USE_INTEGRATED_SLIDE_REVEAL;
+    }
+
     usesOverlayVisuals() {
       return this.mode === 'overlay';
     }
 
+    integratedSlideVisiblePx() {
+      return Math.max(0, Math.min(this.maxPx, this.integratedRevealPx));
+    }
+
     integratedHiddenPx() {
+      if (this.usesIntegratedSlideReveal()) {
+        return Math.max(0, Math.min(this.maxPx, this.maxPx - this.integratedSlideVisiblePx()));
+      }
       if (this._integratedAnimHiddenPx != null) {
         return Math.max(0, Math.min(this.maxPx, this._integratedAnimHiddenPx));
       }
@@ -204,13 +342,89 @@
 
     bakeIntegratedHiddenPx(hiddenPx) {
       const list = this.listEl();
-      if (!list) return;
       const clamped = Math.max(0, Math.min(this.maxPx, hiddenPx));
+      if (this.usesIntegratedSlideReveal()) {
+        this.integratedRevealPx = this.maxPx - clamped;
+        if (list) {
+          list.style.transform = '';
+          list.scrollTop = 0;
+        }
+        return;
+      }
+      if (!list) return;
       list.style.transform = '';
       list.scrollTop = clamped;
     }
 
+    animateIntegratedSlideRevealTo(targetRevealPx, duration, onComplete, options = {}) {
+      this.cancelAnim();
+      const clampedTarget = Math.max(0, Math.min(this.maxPx, targetRevealPx));
+      const start = this.integratedRevealPx;
+      const expanding = clampedTarget > start;
+      const list = this.listEl();
+      if (list) {
+        list.style.transform = '';
+        if (list.scrollTop <= this.maxPx + 0.5) list.scrollTop = 0;
+      }
+      if (Math.abs(start - clampedTarget) < 0.5) {
+        this.integratedRevealPx = clampedTarget;
+        this.expanded = clampedTarget >= this.maxPx - 0.5;
+        this.storyVisible = clampedTarget > 0.5;
+        this.applyVisuals();
+        onComplete?.();
+        return;
+      }
+      if (expanding) this.storyVisible = true;
+      const layer = els.inboxListLayer;
+      const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : MOTION.expandMs;
+      const opacityEasing = options.easing || easeOutStandard;
+      this.setAnimating(true);
+      if (layer) {
+        layer.style.transition = 'none';
+        this.integratedRevealPx = start;
+        this._integratedOpacityProgress = clamp01(start / this.maxPx);
+        this.applyVisuals();
+        void layer.offsetHeight;
+        layer.style.transition = `transform ${safeDuration}ms ${options.easingCss || EASE.easeOutStandard}`;
+      }
+      this._animFrame = requestAnimationFrame(() => {
+        this.integratedRevealPx = clampedTarget;
+        if (list && clampedTarget <= 0.5) list.scrollTop = 0;
+        this.applyVisuals();
+        const startedAt = performance.now();
+        const delta = clampedTarget - start;
+        const tickOpacity = (now) => {
+          const t = clamp01((now - startedAt) / safeDuration);
+          this._integratedOpacityProgress = clamp01((start + delta * opacityEasing(t)) / this.maxPx);
+          this.applyVisuals();
+          if (t < 1 && this.isAnimating) {
+            this._integratedOpacityFrame = requestAnimationFrame(tickOpacity);
+          }
+        };
+        this._integratedOpacityFrame = requestAnimationFrame(tickOpacity);
+        this._animFrame = setTimeout(() => {
+          this._animFrame = null;
+          if (this._integratedOpacityFrame) cancelAnimationFrame(this._integratedOpacityFrame);
+          this._integratedOpacityFrame = null;
+          this._integratedOpacityProgress = null;
+          if (layer) layer.style.transition = '';
+          this.integratedRevealPx = clampedTarget;
+          if (list && clampedTarget <= 0.5) list.scrollTop = 0;
+          this.expanded = clampedTarget >= this.maxPx - 0.5;
+          this.storyVisible = clampedTarget > 0.5;
+          this.setAnimating(false);
+          if (this.expanded) clearAllReadHint();
+          this.applyVisuals();
+          onComplete?.();
+        }, safeDuration + 32);
+      });
+    }
+
     animateIntegratedScrollTo(targetHiddenPx, duration, onComplete, options = {}) {
+      if (this.usesIntegratedSlideReveal()) {
+        this.animateIntegratedSlideRevealTo(this.maxPx - targetHiddenPx, duration, onComplete, options);
+        return;
+      }
       this.cancelAnim();
       const clampedTarget = Math.max(0, Math.min(this.maxPx, targetHiddenPx));
       const collapsing = clampedTarget >= this.maxPx - 0.5;
@@ -241,6 +455,7 @@
           this.bakeIntegratedHiddenPx(clampedTarget);
           this.expanded = !collapsing;
           this.storyVisible = !collapsing;
+          if (this.expanded) clearAllReadHint();
           this.applyVisuals();
           onComplete?.();
         },
@@ -253,6 +468,7 @@
     }
 
     animateIntegratedCollapse(onComplete) {
+      noteManualAllReadCollapse();
       this.animateIntegratedScrollTo(this.maxPx, MOTION.collapseMs, onComplete, {
         easing: easeOutStandard,
       });
@@ -371,6 +587,7 @@
     }
 
     initialIntegratedScrollTop() {
+      if (this.usesIntegratedSlideReveal()) return 0;
       if (this.mode === 'locked-integrated') return 0;
       const autoStartsCollapsed = cfg.autoExpandOnEnter === true;
       return cfg.startExpanded && !autoStartsCollapsed ? 0 : this.maxPx;
@@ -441,7 +658,13 @@
       this._refreshCompleteTimer = null;
       clearTimeout(this._scrollSettleTimer);
       this._scrollSettleTimer = null;
+      if (this._integratedOpacityFrame) cancelAnimationFrame(this._integratedOpacityFrame);
+      this._integratedOpacityFrame = null;
+      this._integratedOpacityProgress = null;
       this.stopFling(false);
+      if (this.usesIntegratedSlideReveal() && els.inboxListLayer) {
+        els.inboxListLayer.style.transition = '';
+      }
       if (this._integratedAnimHiddenPx != null) {
         this.bakeIntegratedHiddenPx(this._integratedAnimHiddenPx);
         this._integratedAnimHiddenPx = null;
@@ -473,24 +696,57 @@
       if (cfg.storySlideEnabled) {
         return this.overlayStoryVisible() ? 1 : 0;
       }
+      if (cfg.overlayOpacityEnabled === true) {
+        if (!this.overlayStoryVisible()) return 0;
+        const progress = clamp01(this.reveal / this.maxPx);
+        const minOpacity = cfg.overlayMinOpacity ?? 0.18;
+        const startProgress = cfg.overlayOpacityStartProgress ?? 0.42;
+        const endProgress = cfg.overlayOpacityEndProgress ?? 0.95;
+        const opacityProgress = clamp01((progress - startProgress) / Math.max(0.01, endProgress - startProgress));
+        const eased = opacityProgress ** 3 * (opacityProgress * (opacityProgress * 6 - 15) + 10);
+        return Math.max(0, Math.min(1, minOpacity + (1 - minOpacity) * eased));
+      }
       // V2: keep slot opacity at 1; edge fade is mask-driven only (see overlaySkylightEdgeFadeMask).
       return this.overlayStoryVisible() ? 1 : 0;
     }
 
+    integratedSkylightOpacity(progress) {
+      if (cfg.integratedOpacityEnabled !== true) {
+        return progress > 0.01 ? 1 : 0;
+      }
+      if (progress <= 0.001) return 0;
+      const minOpacity = cfg.integratedOpacityMin ?? 0.18;
+      const startProgress = cfg.integratedOpacityStartProgress ?? 0.06;
+      const endProgress = cfg.integratedOpacityEndProgress ?? 0.85;
+      const opacityProgress = clamp01((progress - startProgress) / Math.max(0.01, endProgress - startProgress));
+      const eased = opacityProgress ** 3 * (opacityProgress * (opacityProgress * 6 - 15) + 10);
+      return Math.max(0, Math.min(1, minOpacity + (1 - minOpacity) * eased));
+    }
+
     overlaySkylightEdgeFadeMask() {
+      if (cfg.overlayMaskEnabled === false) return null;
       if (cfg.storySlideEnabled) return null;
       const progress = clamp01(this.reveal / this.maxPx);
       if (progress <= 0.001) return null;
-      if (progress >= 0.999) return null;
-      const boundaryPct = progress * 100;
-      const maxFadeBandPct = Math.min(34, Math.max(12, (40 / this.maxPx) * 100));
-      const fadeBandPct = maxFadeBandPct * (1 - progress);
-      if (fadeBandPct < 0.05) return null;
-      const solidEnd = Math.max(0, boundaryPct - fadeBandPct);
-      return `linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) ${solidEnd}%, rgba(0,0,0,0) ${boundaryPct}%)`;
+      if (progress >= 0.985) return null;
+      const visiblePx = this.maxPx * progress;
+      const fadePx = Math.min(28, Math.max(14, visiblePx * 0.34), visiblePx * 0.88);
+      const solidEndPx = Math.max(0, visiblePx - fadePx);
+      const softMidPx = solidEndPx + fadePx * 0.42;
+      const softEndPx = solidEndPx + fadePx * 0.76;
+      return [
+        'linear-gradient(to bottom,',
+        'rgba(0,0,0,1) 0px,',
+        `rgba(0,0,0,1) ${solidEndPx}px,`,
+        `rgba(0,0,0,0.82) ${softMidPx}px,`,
+        `rgba(0,0,0,0.36) ${softEndPx}px,`,
+        `rgba(0,0,0,0) ${visiblePx}px,`,
+        'rgba(0,0,0,0) 100%)',
+      ].join(' ');
     }
 
     integratedSkylightEdgeFadeMask() {
+      if (cfg.integratedMaskEnabled === false) return null;
       if (cfg.storySlideEnabled) return null;
       const progress = clamp01(this.integratedProgress());
       if (progress <= 0.001) return null;
@@ -511,6 +767,8 @@
       if (mask) {
         el.style.webkitMaskImage = mask;
         el.style.maskImage = mask;
+        el.style.webkitMaskMode = 'alpha';
+        el.style.maskMode = 'alpha';
         el.style.webkitMaskSize = '100% 100%';
         el.style.maskSize = '100% 100%';
         el.style.webkitMaskRepeat = 'no-repeat';
@@ -526,6 +784,8 @@
       if (mask) {
         el.style.webkitMaskImage = mask;
         el.style.maskImage = mask;
+        el.style.webkitMaskMode = 'alpha';
+        el.style.maskMode = 'alpha';
         el.style.webkitMaskSize = '100% 100%';
         el.style.maskSize = '100% 100%';
         el.style.webkitMaskRepeat = 'no-repeat';
@@ -539,6 +799,8 @@
       if (!el) return;
       el.style.maskImage = '';
       el.style.webkitMaskImage = '';
+      el.style.maskMode = 'normal';
+      el.style.webkitMaskMode = 'normal';
       el.style.maskSize = '';
       el.style.webkitMaskSize = '';
       el.style.maskRepeat = '';
@@ -673,6 +935,8 @@
     setOffset() {
       const autoStartsCollapsed = cfg.autoExpandOnEnter === true;
       this.reveal = cfg.startExpanded && !autoStartsCollapsed ? this.maxPx : 0;
+      this.integratedRevealPx = cfg.startExpanded && !autoStartsCollapsed ? this.maxPx : 0;
+      this._integratedOpacityProgress = null;
       this.refreshOffset = 0;
       this.expanded = this.isIntegratedMode()
         ? this.integratedExpanded()
@@ -809,7 +1073,7 @@
           this.applySkylightMask(els.storyRevealSlot);
         }
         if (els.inboxListLayer) {
-          els.inboxListLayer.style.transform = `translateY(${this.reveal + this.refreshLayoutPx()}px)`;
+          els.inboxListLayer.style.transform = `translateY(${this.reveal + this.refreshLayoutPx() + allReadCollapsedHintOffset()}px)`;
         }
         const slideInner = els.storyRevealSlot?.querySelector('.skylight-row-inner') || els.skylightRow;
         if (slideInner) {
@@ -823,27 +1087,33 @@
         this.applyReleaseHint(progress);
       } else {
         const integratedProgress = this.integratedProgress();
-        const storyVisible = integratedProgress > 0.01;
+        const integratedOpacityProgress = this._integratedOpacityProgress ?? integratedProgress;
+        const storyVisible = (this.usesIntegratedSlideReveal() && this.isAnimating) || integratedProgress > 0.01;
+        const integratedOpacity = this.integratedSkylightOpacity(integratedOpacityProgress);
         if (els.storyRevealSlot) {
           els.storyRevealSlot.style.height = `${this.maxPx}px`;
           els.storyRevealSlot.style.visibility = storyVisible ? 'visible' : 'hidden';
-          els.storyRevealSlot.style.opacity = storyVisible ? '1' : '0';
+          els.storyRevealSlot.style.opacity = storyVisible ? `${integratedOpacity}` : '0';
           els.storyRevealSlot.style.transform = 'none';
           els.storyRevealSlot.style.pointerEvents = storyVisible ? '' : 'none';
           this.clearSkylightMask(els.storyRevealSlot);
         }
         if (els.inboxListLayer) {
-          els.inboxListLayer.style.transform = `translateY(${this.refreshLayoutPx()}px)`;
+          const hiddenPx = this.usesIntegratedSlideReveal() ? this.integratedHiddenPx() : 0;
+          els.inboxListLayer.style.bottom = this.usesIntegratedSlideReveal() ? `-${this.maxPx}px` : '';
+          els.inboxListLayer.style.transform = `translateY(${this.refreshLayoutPx() - hiddenPx + allReadCollapsedHintOffset()}px)`;
         }
         const slideInner = els.storyRevealSlot?.querySelector('.skylight-row-inner') || els.skylightRow;
         if (slideInner) {
           slideInner.style.transform = 'none';
-          slideInner.style.opacity = storyVisible ? '1' : '0';
+          slideInner.style.opacity = '1';
           this.applyIntegratedSkylightMask(slideInner);
         }
         this.hideReleaseHint();
       }
       this.applyRefreshVisuals();
+      applyAllReadCollapsedHint();
+      restoreAllReadHintIfCollapsed();
     }
 
     applyReleaseHint(progress) {
@@ -859,6 +1129,41 @@
       if (!els.storyReleaseHint) return;
       els.storyReleaseHint.style.opacity = '0';
       els.storyReleaseHint.style.height = '0px';
+    }
+
+    isSkylightSubstantiallyOpen() {
+      if (this.mode === 'locked-integrated') return true;
+      if (this.isIntegratedMode()) {
+        return this.integratedProgress() > 0.01 || this.expanded;
+      }
+      return this.reveal > 0.5 || this.expanded;
+    }
+
+    collapseSilentlyForAllRead() {
+      this.stopFling(false);
+      this.cancelAutoExpand();
+      this.cancelAnim();
+      clearTimeout(this._scrollSettleTimer);
+      this._scrollSettleTimer = null;
+      clearTimeout(this._wheelSettleTimer);
+      this._wheelSettleTimer = null;
+      this._touch = null;
+      this.refreshOffset = 0;
+      this.pushAccum = 0;
+      this.lastDragDown = false;
+      this.setAnimating(false);
+      if (this.isIntegratedMode()) {
+        this._integratedAnimHiddenPx = null;
+        this._integratedOpacityProgress = null;
+        this.bakeIntegratedHiddenPx(this.maxPx);
+        this.integratedRevealPx = 0;
+      } else {
+        this.reveal = 0;
+        this.slideProgress = 0;
+      }
+      this.expanded = false;
+      this.storyVisible = false;
+      this.applyVisuals();
     }
 
     applyRefreshVisuals() {
@@ -1040,6 +1345,7 @@
         onComplete?.();
         return;
       }
+      consumeAllReadHintGestureOffset(this);
       this.storyVisible = true;
       const slideMs = Math.min(expandMs, MOTION.storySlideMs);
       if (this.mode === 'overlay') {
@@ -1056,6 +1362,7 @@
           () => {
             this.expanded = true;
             this.storyVisible = true;
+            clearAllReadHint();
             this.applyVisuals();
             onComplete?.();
           },
@@ -1081,6 +1388,7 @@
 
     animateCollapse() {
       if (this.mode === 'locked-integrated') return;
+      noteManualAllReadCollapse();
       const finish = () => {
         this.expanded = false;
         if (this.mode === 'overlay') this.storyVisible = false;
@@ -1405,11 +1713,44 @@
       this.recordGestureVelocity(deltaY);
       const list = this.listEl();
       const down = deltaY > 0;
+      if (down) beginAllReadHintGestureBaseline();
       this.lastDragDown = down;
       if (down) this.pushAccum = 0;
 
       if (this.isIntegratedMode()) {
         const hiddenPx = this.integratedHiddenPx();
+        if (this.usesIntegratedSlideReveal()) {
+          if (!this.expanded && this.listAtTop() && down) {
+            const hintOffset = allReadHintGestureOffsetPx;
+            const visualCurrent = this.integratedRevealPx + hintOffset;
+            const visualNext = Math.min(this.maxPx, visualCurrent + deltaY);
+            const next = hintOffset > 0
+              ? Math.max(0, visualNext - hintOffset)
+              : Math.min(this.maxPx, this.integratedRevealPx + deltaY);
+            const used = hintOffset > 0
+              ? visualNext - visualCurrent
+              : next - this.integratedRevealPx;
+            this.integratedRevealPx = next;
+            this.storyVisible = next > 0.5;
+            if (visualNext >= this.maxPx - 0.5 || next >= this.maxPx - 0.5) {
+              this.integratedRevealPx = this.maxPx;
+              this.expanded = true;
+              clearAllReadHint();
+              const remaining = hintOffset > 0 ? 0 : Math.max(0, deltaY - used);
+              if (remaining > 0 && cfg.chainRefreshAfterExpand) {
+                this.refreshOffset = Math.min(this.refreshMaxPullPx, this.refreshOffset + remaining);
+              }
+            }
+            this.applyVisuals();
+            return true;
+          }
+          if (!this.expanded && this.integratedRevealPx > 0.5 && !down) {
+            this.integratedRevealPx = Math.max(0, this.integratedRevealPx + deltaY);
+            this.storyVisible = this.integratedRevealPx > 0.5;
+            this.applyVisuals();
+            return true;
+          }
+        }
         if (hiddenPx <= 0.5 && down) {
           this.applyRefreshPull(deltaY);
           return true;
@@ -1452,15 +1793,22 @@
       if (!this.expanded && this.listAtTop() && down) {
         if (cfg.chainRefreshAfterExpand && cfg.expandOnDrag) {
           const current = this.reveal;
-          const next = Math.min(this.maxPx, current + deltaY);
+          const hintOffset = allReadHintGestureOffsetPx;
+          const visualCurrent = current + hintOffset;
+          const visualNext = Math.min(this.maxPx, visualCurrent + deltaY);
+          const next = hintOffset > 0
+            ? Math.max(0, visualNext - hintOffset)
+            : Math.min(this.maxPx, current + deltaY);
           this.reveal = next;
           this.storyVisible = next > 0.5;
           this.slideProgress = clamp01(next / this.maxPx);
-          const remaining = Math.max(0, deltaY - (next - current));
-          if (next >= this.maxPx - 0.5) {
+          const used = hintOffset > 0 ? visualNext - visualCurrent : next - current;
+          const remaining = hintOffset > 0 ? 0 : Math.max(0, deltaY - used);
+          if (visualNext >= this.maxPx - 0.5 || next >= this.maxPx - 0.5) {
             this.reveal = this.maxPx;
             this.storyVisible = true;
             this.expanded = true;
+            clearAllReadHint();
             if (remaining > 0) {
               this.refreshOffset = Math.min(this.refreshMaxPullPx, this.refreshOffset + remaining);
             }
@@ -1693,7 +2041,9 @@
         revealActive = atTopPull || this.reveal > 0 || this.expanded;
       }
       if (!revealActive && this.isIntegratedMode()) {
-        revealActive = atTopPull && this.integratedHiddenPx() <= 0.5;
+        revealActive = this.usesIntegratedSlideReveal()
+          ? (atTopPull || (this.integratedRevealPx > 0.5 && this.integratedRevealPx < this.maxPx - 0.5))
+          : atTopPull && this.integratedHiddenPx() <= 0.5;
       }
       if (!revealActive) {
         event.preventDefault();
@@ -1722,6 +2072,20 @@
   }
 
   const reveal = new DesignLabStoryRevealController();
+
+  function allReadHintBlocksAutoExpand() {
+    return cfg.allReadCollapsedHintEnabled === true
+      && allReadHintActive
+      && !reveal.isSkylightSubstantiallyOpen();
+  }
+
+  function shouldBackgroundCollapseAllRead() {
+    return allReadAutoCollapseEnabled()
+      && allReadAutoCollapseEligible
+      && allOtherStoriesRead()
+      && !manualCollapseAfterAllRead
+      && reveal.isSkylightSubstantiallyOpen();
+  }
   window.__storyRevealController = reveal;
 
   function setSystemBarMode(mode) {
@@ -1765,19 +2129,61 @@
     setBottomNavActive(els.layerFeed, 'inbox');
     setBottomNavActive(els.layerInbox, 'inbox');
     syncFeedVideo();
-    reveal.prepareAutoExpandOnEnter();
-    reveal.scheduleAutoExpand();
+    const shouldAutoExpand = cfg.autoExpandOnEnter === true
+      && !cfg.lockStoryExpanded
+      && !allReadHintBlocksAutoExpand()
+      && (!AUTO_EXPAND_ONCE_PER_RUN || !autoExpandEntryConsumed);
+    if (shouldAutoExpand) {
+      if (AUTO_EXPAND_ONCE_PER_RUN) autoExpandEntryConsumed = true;
+      reveal.prepareAutoExpandOnEnter();
+      if (reveal.usesIntegratedSlideReveal()) {
+        reveal.cancelAutoExpand();
+        reveal._autoExpandTimer = setTimeout(() => {
+          reveal._autoExpandTimer = null;
+          if (showFeed || reveal._touch) return;
+          reveal.autoExpandConsumed = true;
+          reveal.animateExpand();
+        }, MOTION.autoExpandDelayMs);
+        return;
+      }
+      reveal.scheduleAutoExpand();
+      return;
+    }
+    reveal.cancelAutoExpand();
+    reveal.applyVisuals();
   }
 
   function showFeedLayer() {
+    const shouldCollapseAllRead = shouldBackgroundCollapseAllRead();
+    const feedLayer = els.layerFeed;
+    if (shouldCollapseAllRead && feedLayer) {
+      feedLayer.style.transition = 'none';
+    }
     showFeed = true;
-    els.layerFeed?.classList.remove('is-hidden');
+    feedLayer?.classList.remove('is-hidden');
+    if (shouldCollapseAllRead && feedLayer) {
+      void feedLayer.offsetHeight;
+    }
     els.layerInbox?.classList.remove('is-active');
     setSystemBarMode('feed');
     setBottomNavActive(els.layerFeed, 'home');
     setBottomNavActive(els.layerInbox, null);
     syncFeedVideo();
     reveal.cancelAutoExpand();
+    if (shouldCollapseAllRead) {
+      allReadAutoCollapseEligible = false;
+      allReadHintActive = true;
+      allReadHintTextSuppressed = false;
+      allReadHintGestureOffsetPx = 0;
+      reveal.collapseSilentlyForAllRead();
+      if (feedLayer) {
+        requestAnimationFrame(() => {
+          feedLayer.style.transition = '';
+        });
+      }
+    } else {
+      applyAllReadCollapsedHint();
+    }
   }
 
   function renderSkylight() {
@@ -1816,6 +2222,7 @@
     if (readLabels.has(label)) return;
     readLabels.add(label);
     moveStoryToTail(label);
+    noteAllReadReached();
   }
 
   function commitPendingStoryViewed() {
@@ -2081,9 +2488,11 @@
 
   function resetDemo() {
     showFeed = VARIANT.startOnFeed;
+    autoExpandEntryConsumed = false;
     showAlbum = false;
     readLabels = new Set();
     skylightOrder = ['Lindsey', 'Maren', 'Alena', 'Rayna'];
+    resetAllReadAutoCollapseState();
     if (reveal._animFrame) {
       cancelAnimationFrame(reveal._animFrame);
       clearTimeout(reveal._animFrame);

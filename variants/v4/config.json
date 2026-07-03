@@ -27,6 +27,7 @@
   "expandOnDrag": false,
   "storySlideEnabled": true,
   "autoExpandOnEnter": true,
+  "autoExpandOncePerRun": true,
   "startExpanded": false,
   "topDownStoryRevealEnabled": false,
   "lockStoryExpanded": false,

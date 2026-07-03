@@ -47,17 +47,16 @@ VARIANTS = {
     "v3": {
         "label": "V3",
         "pushThreshold": 12,
-        "pullThreshold": 48,
+        "pullThreshold": 0,
         "maxPullDistance": 118,
-        "expandOnDrag": False,
+        "expandOnDrag": True,
         "storySlideEnabled": False,
         "autoExpandOnEnter": True,
         "startExpanded": True,
         "topDownStoryRevealEnabled": True,
         "lockStoryExpanded": False,
-        "chainRefreshAfterExpand": False,
+        "chainRefreshAfterExpand": True,
         "releaseHintEnabled": False,
-        "wheelScrollDamping": 0.72,
     },
     "v4": {
         "label": "V4",
@@ -1014,7 +1013,7 @@ def write_preview_shell() -> None:
   <nav class="menu" aria-label="Story Skylight variants">
     <a class="menu-item" href="preview-v1.html">V1 — Integrated（锁定展开）</a>
     <a class="menu-item" href="preview-v2.html">V2 — Overlay + 链式刷新</a>
-    <a class="menu-item" href="preview-v3.html">V3 — Integrated + 半展开回弹</a>
+    <a class="menu-item" href="preview-v3.html">V3 — Integrated + 链式刷新</a>
     <a class="menu-item" href="preview-v4.html">V4 — Overlay + Release hint</a>
   </nav>
 </body>

@@ -26,6 +26,7 @@
     zoomInBtn: document.getElementById('zoomInBtn'),
     zoomFitBtn: document.getElementById('zoomFitBtn'),
     zoomLabel: document.getElementById('zoomLabel'),
+    demoBtn: document.getElementById('demoBtn'),
     reloadBtn: document.getElementById('reloadBtn'),
     variantCaption: document.getElementById('variantCaption'),
     cursor: document.getElementById('touch-cursor'),
@@ -34,6 +35,7 @@
   let currentVariant = 'v1';
   let zoomMode = ZOOM_FIT;
   let zoomIndex = 2;
+  let demoRunning = false;
 
   function parseVariantFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -323,6 +325,7 @@
     }
 
     els.phoneWrap.addEventListener('pointerdown', (e) => {
+      if (demoRunning) return;
       if (e.button !== 0) return;
       const point = framePointFromClient(e.clientX, e.clientY);
       if (!point) return;
@@ -341,6 +344,7 @@
     });
 
     els.phoneWrap.addEventListener('pointermove', (e) => {
+      if (demoRunning) return;
       if (!drag.active || e.pointerId !== drag.pointerId) return;
       if (drag.blockGestures) return;
       const point = framePointFromClient(e.clientX, e.clientY);
@@ -376,6 +380,181 @@
     els.phoneWrap.addEventListener('pointercancel', finishDrag);
   }
 
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function frameToClient(x, y) {
+    const rect = frameRect();
+    return {
+      x: rect.left + (x / FRAME_W) * rect.width,
+      y: rect.top + (y / FRAME_H) * rect.height,
+    };
+  }
+
+  function setDemoCursor(frameX, frameY, down = false) {
+    if (!els.cursor) return;
+    const point = frameToClient(frameX, frameY);
+    els.cursor.style.left = `${point.x}px`;
+    els.cursor.style.top = `${point.y}px`;
+    els.cursor.classList.add('visible');
+    els.cursor.classList.toggle('is-down', down);
+  }
+
+  async function moveDemoCursorTo(frameX, frameY, duration = 260) {
+    setDemoCursor(frameX, frameY, false);
+    await wait(duration);
+  }
+
+  async function demoTap(frameX, frameY, options = {}) {
+    await moveDemoCursorTo(frameX, frameY, options.moveMs ?? 180);
+    setDemoCursor(frameX, frameY, true);
+    await wait(options.downMs ?? 90);
+    postToFrame('skylight:preview-click', { x: frameX, y: frameY });
+    setDemoCursor(frameX, frameY, false);
+    await wait(options.afterMs ?? 280);
+  }
+
+  function framePointForSelector(selector) {
+    const doc = els.frame.contentDocument;
+    const target = doc?.querySelector(selector);
+    if (!target) return null;
+    const rect = target.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: Math.max(0, Math.min(FRAME_W, rect.left + rect.width / 2)),
+      y: Math.max(0, Math.min(FRAME_H, rect.top + rect.height / 2)),
+    };
+  }
+
+  async function demoTapSelector(selector, options = {}) {
+    const point = framePointForSelector(selector);
+    if (!point) {
+      await wait(options.afterMs ?? 280);
+      return;
+    }
+    await demoTap(point.x, point.y, options);
+  }
+
+  async function demoDrag(points, options = {}) {
+    if (!points.length) return;
+    const start = points[0];
+    await moveDemoCursorTo(start.x, start.y, options.moveMs ?? 180);
+    setDemoCursor(start.x, start.y, true);
+    postToFrame('skylight:preview-gesture-active', { active: true });
+    postToFrame('skylight:preview-gesture-start', {
+      x: start.x,
+      y: start.y,
+      clientX: start.x,
+      clientY: start.y,
+    });
+    let prev = start;
+    for (let i = 1; i < points.length; i += 1) {
+      const point = points[i];
+      const steps = Math.max(1, options.stepsPerSegment ?? 8);
+      for (let step = 1; step <= steps; step += 1) {
+        const t = step / steps;
+        const x = prev.x + (point.x - prev.x) * t;
+        const y = prev.y + (point.y - prev.y) * t;
+        setDemoCursor(x, y, true);
+        postToFrame('skylight:preview-gesture-move', {
+          x,
+          y,
+          clientX: x,
+          clientY: y,
+          dx: (point.x - prev.x) / steps,
+          dy: (point.y - prev.y) / steps,
+        });
+        await wait(options.stepMs ?? 18);
+      }
+      prev = point;
+    }
+    postToFrame('skylight:preview-gesture-end', {
+      x: prev.x,
+      y: prev.y,
+      velocityY: options.velocityY ?? 0,
+    });
+    postToFrame('skylight:preview-gesture-active', { active: false });
+    setDemoCursor(prev.x, prev.y, false);
+    await wait(options.afterMs ?? 360);
+  }
+
+  async function waitForFrameReady() {
+    await wait(80);
+    try {
+      if (els.frame.contentDocument?.readyState !== 'complete') {
+        await new Promise((resolve) => {
+          const done = () => {
+            els.frame.removeEventListener('load', done);
+            resolve();
+          };
+          els.frame.addEventListener('load', done);
+          setTimeout(done, 900);
+        });
+      }
+    } catch (_) {}
+    await wait(520);
+  }
+
+  async function resetForDemo() {
+    reloadDemo();
+    await waitForFrameReady();
+  }
+
+  async function closeStoryPreview() {
+    await demoTapSelector('#storyPreviewClose', { moveMs: 120, afterMs: 460 });
+  }
+
+  async function runAllReadHintDemo() {
+    await resetForDemo();
+    await demoTapSelector('#feedInboxBtn', { afterMs: 950 });
+    for (const label of ['Lindsey', 'Maren', 'Alena', 'Rayna']) {
+      await demoTapSelector(`[data-story-label="${label}"] .skylight-avatar-slot`, { afterMs: 520 });
+      await closeStoryPreview();
+    }
+    await demoTapSelector('#layer-inbox [data-feed-nav="home"]', { afterMs: 240 });
+    await demoTapSelector('#feedInboxBtn', { afterMs: 540 });
+    await demoDrag([
+      { x: 180, y: 156 },
+      { x: 180, y: 244 },
+    ], { stepMs: 16, afterMs: 720 });
+  }
+
+  async function runBasicDemo() {
+    await resetForDemo();
+    await demoTapSelector('#feedInboxBtn', { afterMs: 850 });
+    await demoDrag([
+      { x: 180, y: 170 },
+      { x: 180, y: 230 },
+      { x: 180, y: 180 },
+    ], { stepMs: 18, afterMs: 420 });
+  }
+
+  async function runDemoSequence() {
+    if (demoRunning) return;
+    demoRunning = true;
+    document.body.classList.add('is-demo-running', 'has-touch-cursor');
+    if (els.demoBtn) {
+      els.demoBtn.disabled = true;
+      els.demoBtn.classList.add('is-active');
+    }
+    try {
+      if (currentVariant === 'v2' || currentVariant === 'v3') {
+        await runAllReadHintDemo();
+      } else {
+        await runBasicDemo();
+      }
+    } finally {
+      demoRunning = false;
+      document.body.classList.remove('is-demo-running');
+      if (els.demoBtn) {
+        els.demoBtn.disabled = false;
+        els.demoBtn.classList.remove('is-active');
+      }
+      els.cursor?.classList.remove('is-down');
+    }
+  }
+
   VARIANTS.forEach((variant) => {
     const option = document.createElement('option');
     option.value = variant.id;
@@ -387,6 +566,7 @@
   els.zoomOutBtn?.addEventListener('click', zoomOut);
   els.zoomInBtn?.addEventListener('click', zoomIn);
   els.zoomFitBtn?.addEventListener('click', setZoomFit);
+  els.demoBtn?.addEventListener('click', runDemoSequence);
   els.reloadBtn.addEventListener('click', reloadDemo);
   window.addEventListener('resize', applyLayout);
   if (els.toolbar && typeof ResizeObserver !== 'undefined') {
