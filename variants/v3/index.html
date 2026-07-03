@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../shared/skylight.css?v=29" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v=30" />
 </head>
 <body class="variant-embed">
   <div class="phone" id="phone">
@@ -23,6 +23,43 @@
       </div>
     </div>
     <div id="flowRoot" class="flow-root">
+      <div id="layer-desktop" class="flow-layer flow-layer-desktop" data-route="desktop" aria-hidden="true">
+        <div class="desktop-wallpaper" aria-hidden="true"></div>
+        <div class="desktop-app-grid" aria-label="Desktop apps">
+          <button type="button" class="desktop-app" data-desktop-app="photos">
+            <span class="desktop-app-icon desktop-app-icon-photos"></span>
+            <span class="desktop-app-label">Photos</span>
+          </button>
+          <button type="button" class="desktop-app" data-desktop-app="messages">
+            <span class="desktop-app-icon desktop-app-icon-messages"></span>
+            <span class="desktop-app-label">Messages</span>
+          </button>
+          <button type="button" class="desktop-app" data-desktop-app="camera">
+            <span class="desktop-app-icon desktop-app-icon-camera"></span>
+            <span class="desktop-app-label">Camera</span>
+          </button>
+          <button type="button" class="desktop-app" data-desktop-app="music">
+            <span class="desktop-app-icon desktop-app-icon-music"></span>
+            <span class="desktop-app-label">Music</span>
+          </button>
+          <button type="button" class="desktop-app desktop-app-tiktok" id="desktopTikTokBtn" data-desktop-app="tiktok">
+            <span class="desktop-app-icon desktop-app-icon-tiktok"><span>T</span></span>
+            <span class="desktop-app-label">TikTok</span>
+          </button>
+          <button type="button" class="desktop-app" data-desktop-app="mail">
+            <span class="desktop-app-icon desktop-app-icon-mail"></span>
+            <span class="desktop-app-label">Mail</span>
+          </button>
+          <button type="button" class="desktop-app" data-desktop-app="maps">
+            <span class="desktop-app-icon desktop-app-icon-maps"></span>
+            <span class="desktop-app-label">Maps</span>
+          </button>
+          <button type="button" class="desktop-app" data-desktop-app="settings">
+            <span class="desktop-app-icon desktop-app-icon-settings"></span>
+            <span class="desktop-app-label">Settings</span>
+          </button>
+        </div>
+      </div>
       
       <div id="layer-feed" class="flow-layer flow-layer-feed" data-route="feed">
         <div class="feed-video">
@@ -181,8 +218,8 @@
       </div>
     <div class="system-home-indicator" data-name="System/Home Indicator" data-figma="3285:55821" aria-hidden="true"><div class="system-home-indicator-handle"></div></div>
   </div>
-  <script>window.__SKYLIGHT_VARIANT__ = {"expandMs": 450, "collapseMs": 350, "storySlideMs": 300, "settleBackMs": 250, "autoExpandDelayMs": 400, "pushFlingVelocity": 1500, "pullDamping": 0.65, "pushThreshold": 12, "maxHeight": 118, "refreshThreshold": 32, "refreshIndicatorHeight": 56, "refreshMaxPullDistance": 56, "refreshDurationMs": 1200, "tabCrossfadeMs": 150, "storyDurationMs": 3500, "previewEnterMs": 180, "previewExitMs": 150, "photoCrossfadeMs": 250, "storyAddEnterMs": 320, "storyAddExitMs": 260, "effectCoverLoadMs": 1200, "albumEmergenceMs": 160, "label": "V3", "pullThreshold": 0, "maxPullDistance": 118, "expandOnDrag": true, "storySlideEnabled": false, "integratedSlideReveal": true, "integratedMaskEnabled": false, "integratedOpacityEnabled": true, "integratedOpacityMin": 0.18, "integratedOpacityStartProgress": 0.06, "integratedOpacityEndProgress": 0.85, "autoExpandOnEnter": true, "autoExpandOncePerRun": true, "startExpanded": true, "topDownStoryRevealEnabled": true, "lockStoryExpanded": false, "chainRefreshAfterExpand": true, "allReadAutoCollapseEnabled": true, "allReadCollapsedHintEnabled": true, "allReadCollapsedHintText": "Release to show Story", "releaseHintEnabled": false, "id": "v3", "startOnFeed": true};
+  <script>window.__SKYLIGHT_VARIANT__ = {"expandMs": 450, "collapseMs": 350, "storySlideMs": 300, "settleBackMs": 250, "autoExpandDelayMs": 400, "pushFlingVelocity": 1500, "pullDamping": 0.65, "pushThreshold": 12, "maxHeight": 118, "refreshThreshold": 32, "refreshIndicatorHeight": 56, "refreshMaxPullDistance": 56, "refreshDurationMs": 1200, "tabCrossfadeMs": 150, "storyDurationMs": 3500, "previewEnterMs": 180, "previewExitMs": 150, "photoCrossfadeMs": 250, "storyAddEnterMs": 320, "storyAddExitMs": 260, "effectCoverLoadMs": 1200, "albumEmergenceMs": 160, "label": "V3", "pullThreshold": 0, "maxPullDistance": 118, "expandOnDrag": true, "storySlideEnabled": false, "integratedSlideReveal": true, "integratedMaskEnabled": false, "integratedOpacityEnabled": true, "integratedOpacityMin": 0.18, "integratedOpacityStartProgress": 0.06, "integratedOpacityEndProgress": 0.85, "autoExpandOnEnter": true, "autoExpandOncePerRun": true, "startExpanded": true, "topDownStoryRevealEnabled": true, "lockStoryExpanded": false, "chainRefreshAfterExpand": true, "allReadAutoCollapseEnabled": true, "allReadCollapsedHintEnabled": true, "allReadCollapsedHintText": "Release to show Story", "releaseHintEnabled": false, "desktopEnabled": true, "id": "v3", "startOnFeed": true};
 window.__STORY_PREVIEWS__ = {"Lindsey": {"avatar": "inbox_story_lindsey.png", "timeText": "3h ago", "photos": ["lindsey_story_photo_1.png", "lindsey_story_photo_2.png", "lindsey_story_photo_3.png", "lindsey_story_photo_4.png"]}, "Maren": {"avatar": "inbox_story_maren.png", "photos": ["maren_story_photo_1.jpg", "maren_story_photo_2.jpg", "maren_story_photo_3.jpg"]}, "Alena": {"avatar": "inbox_story_alena.png", "photos": ["alena_story_photo_1.jpg", "alena_story_photo_2.jpg", "alena_story_photo_3.jpg"]}, "Rayna": {"avatar": "inbox_story_rayna.png", "photos": ["rayna_story_photo_1.jpg", "rayna_story_photo_2.jpg", "rayna_story_photo_3.jpg"]}};</script>
-  <script src="../../shared/skylight-core.js?v=102"></script>
+  <script src="../../shared/skylight-core.js?v=105"></script>
 </body>
 </html>

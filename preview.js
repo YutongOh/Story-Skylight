@@ -7,7 +7,7 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '149';
+  const PREVIEW_BUILD = '152';
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
@@ -26,6 +26,7 @@
     zoomInBtn: document.getElementById('zoomInBtn'),
     zoomFitBtn: document.getElementById('zoomFitBtn'),
     zoomLabel: document.getElementById('zoomLabel'),
+    exitBtn: document.getElementById('exitBtn'),
     demoBtn: document.getElementById('demoBtn'),
     reloadBtn: document.getElementById('reloadBtn'),
     variantCaption: document.getElementById('variantCaption'),
@@ -36,6 +37,8 @@
   let zoomMode = ZOOM_FIT;
   let zoomIndex = 2;
   let demoRunning = false;
+  let demoCursorClientX = null;
+  let demoCursorClientY = null;
 
   function parseVariantFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -157,6 +160,10 @@
     if (!meta) return;
     els.variantSelect.value = variantId;
     if (els.variantCaption) els.variantCaption.textContent = meta.label;
+    if (els.exitBtn) {
+      els.exitBtn.hidden = variantId !== 'v3';
+      els.exitBtn.disabled = variantId !== 'v3';
+    }
     updateUrl(variantId);
     if (reload) {
       els.frame.style.opacity = '0';
@@ -172,6 +179,11 @@
         VARIANTS.find((v) => v.id === currentVariant)?.path || 'variants/v1/index.html',
       );
     }
+  }
+
+  function exitToDesktop() {
+    if (currentVariant !== 'v3') return;
+    postToFrame('skylight:exit-to-desktop');
   }
 
   function frameRect() {
@@ -395,24 +407,55 @@
   function setDemoCursor(frameX, frameY, down = false) {
     if (!els.cursor) return;
     const point = frameToClient(frameX, frameY);
-    els.cursor.style.left = `${point.x}px`;
-    els.cursor.style.top = `${point.y}px`;
+    setDemoCursorClient(point.x, point.y, down);
+  }
+
+  function setDemoCursorClient(clientX, clientY, down = false) {
+    if (!els.cursor) return;
+    demoCursorClientX = clientX;
+    demoCursorClientY = clientY;
+    els.cursor.style.left = `${clientX}px`;
+    els.cursor.style.top = `${clientY}px`;
     els.cursor.classList.add('visible');
     els.cursor.classList.toggle('is-down', down);
   }
 
-  async function moveDemoCursorTo(frameX, frameY, duration = 260) {
-    setDemoCursor(frameX, frameY, false);
-    await wait(duration);
+  function easeInOutDemo(t) {
+    return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
+  }
+
+  async function moveDemoCursorClientTo(clientX, clientY, duration = 340) {
+    if (demoCursorClientX == null || demoCursorClientY == null || duration <= 0) {
+      setDemoCursorClient(clientX, clientY, false);
+      await wait(duration);
+      return;
+    }
+    const fromX = demoCursorClientX;
+    const fromY = demoCursorClientY;
+    const steps = Math.max(1, Math.round(duration / 16));
+    for (let step = 1; step <= steps; step += 1) {
+      const t = easeInOutDemo(step / steps);
+      setDemoCursorClient(
+        fromX + (clientX - fromX) * t,
+        fromY + (clientY - fromY) * t,
+        false
+      );
+      await wait(duration / steps);
+    }
+  }
+
+  async function moveDemoCursorTo(frameX, frameY, duration = 340) {
+    const point = frameToClient(frameX, frameY);
+    await moveDemoCursorClientTo(point.x, point.y, duration);
   }
 
   async function demoTap(frameX, frameY, options = {}) {
-    await moveDemoCursorTo(frameX, frameY, options.moveMs ?? 180);
+    await moveDemoCursorTo(frameX, frameY, options.moveMs ?? 340);
     setDemoCursor(frameX, frameY, true);
-    await wait(options.downMs ?? 90);
+    await wait(options.downMs ?? 110);
     postToFrame('skylight:preview-click', { x: frameX, y: frameY });
     setDemoCursor(frameX, frameY, false);
-    await wait(options.afterMs ?? 280);
+    await wait(options.afterMs ?? 380);
   }
 
   function framePointForSelector(selector) {
@@ -436,10 +479,27 @@
     await demoTap(point.x, point.y, options);
   }
 
+  async function demoTapPageSelector(selector, options = {}) {
+    const target = document.querySelector(selector);
+    if (!target) {
+      await wait(options.afterMs ?? 280);
+      return;
+    }
+    const rect = target.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    await moveDemoCursorClientTo(x, y, options.moveMs ?? 340);
+    setDemoCursorClient(x, y, true);
+    await wait(options.downMs ?? 110);
+    target.click();
+    setDemoCursorClient(x, y, false);
+    await wait(options.afterMs ?? 420);
+  }
+
   async function demoDrag(points, options = {}) {
     if (!points.length) return;
     const start = points[0];
-    await moveDemoCursorTo(start.x, start.y, options.moveMs ?? 180);
+    await moveDemoCursorTo(start.x, start.y, options.moveMs ?? 340);
     setDemoCursor(start.x, start.y, true);
     postToFrame('skylight:preview-gesture-active', { active: true });
     postToFrame('skylight:preview-gesture-start', {
@@ -451,7 +511,7 @@
     let prev = start;
     for (let i = 1; i < points.length; i += 1) {
       const point = points[i];
-      const steps = Math.max(1, options.stepsPerSegment ?? 8);
+      const steps = Math.max(1, options.stepsPerSegment ?? 12);
       for (let step = 1; step <= steps; step += 1) {
         const t = step / steps;
         const x = prev.x + (point.x - prev.x) * t;
@@ -465,7 +525,7 @@
           dx: (point.x - prev.x) / steps,
           dy: (point.y - prev.y) / steps,
         });
-        await wait(options.stepMs ?? 18);
+        await wait(options.stepMs ?? 22);
       }
       prev = point;
     }
@@ -476,7 +536,7 @@
     });
     postToFrame('skylight:preview-gesture-active', { active: false });
     setDemoCursor(prev.x, prev.y, false);
-    await wait(options.afterMs ?? 360);
+    await wait(options.afterMs ?? 520);
   }
 
   async function waitForFrameReady() {
@@ -502,10 +562,10 @@
   }
 
   async function closeStoryPreview() {
-    await demoTapSelector('#storyPreviewClose', { moveMs: 120, afterMs: 460 });
+    await demoTapSelector('#storyPreviewClose', { moveMs: 260, afterMs: 620 });
   }
 
-  async function runAllReadHintDemo() {
+  async function runV2AllReadHintDemo() {
     await resetForDemo();
     await demoTapSelector('#feedInboxBtn', { afterMs: 950 });
     for (const label of ['Lindsey', 'Maren', 'Alena', 'Rayna']) {
@@ -518,6 +578,22 @@
       { x: 180, y: 156 },
       { x: 180, y: 244 },
     ], { stepMs: 16, afterMs: 720 });
+  }
+
+  async function runV3DesktopAllReadHintDemo() {
+    await resetForDemo();
+    await demoTapSelector('#feedInboxBtn', { moveMs: 420, afterMs: 1150 });
+    for (const label of ['Lindsey', 'Maren', 'Alena', 'Rayna']) {
+      await demoTapSelector(`[data-story-label="${label}"] .skylight-avatar-slot`, { moveMs: 360, afterMs: 720 });
+      await closeStoryPreview();
+    }
+    await demoTapPageSelector('#exitBtn', { moveMs: 460, afterMs: 780 });
+    await demoTapSelector('#desktopTikTokBtn', { moveMs: 460, afterMs: 760 });
+    await demoTapSelector('#feedInboxBtn', { moveMs: 420, afterMs: 760 });
+    await demoDrag([
+      { x: 180, y: 156 },
+      { x: 180, y: 244 },
+    ], { moveMs: 360, stepsPerSegment: 16, stepMs: 22, afterMs: 900 });
   }
 
   async function runBasicDemo() {
@@ -539,8 +615,10 @@
       els.demoBtn.classList.add('is-active');
     }
     try {
-      if (currentVariant === 'v2' || currentVariant === 'v3') {
-        await runAllReadHintDemo();
+      if (currentVariant === 'v2') {
+        await runV2AllReadHintDemo();
+      } else if (currentVariant === 'v3') {
+        await runV3DesktopAllReadHintDemo();
       } else {
         await runBasicDemo();
       }
@@ -566,6 +644,7 @@
   els.zoomOutBtn?.addEventListener('click', zoomOut);
   els.zoomInBtn?.addEventListener('click', zoomIn);
   els.zoomFitBtn?.addEventListener('click', setZoomFit);
+  els.exitBtn?.addEventListener('click', exitToDesktop);
   els.demoBtn?.addEventListener('click', runDemoSequence);
   els.reloadBtn.addEventListener('click', reloadDemo);
   window.addEventListener('resize', applyLayout);

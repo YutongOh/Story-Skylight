@@ -41,5 +41,6 @@
   "allReadAutoCollapseEnabled": true,
   "allReadCollapsedHintEnabled": true,
   "allReadCollapsedHintText": "Release to show Story",
-  "releaseHintEnabled": false
+  "releaseHintEnabled": false,
+  "desktopEnabled": true
 }

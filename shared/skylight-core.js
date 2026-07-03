@@ -33,6 +33,7 @@
     startOnFeed: cfg.startOnFeed !== false,
     id: cfg.id || '',
   };
+  const IS_V3 = VARIANT.id === 'v3';
   const USE_INTEGRATED_SLIDE_REVEAL = cfg.integratedSlideReveal === true || VARIANT.id === 'v3';
   const AUTO_EXPAND_ONCE_PER_RUN = cfg.autoExpandOncePerRun === true;
   document.documentElement.dataset.skylightVariant = VARIANT.id;
@@ -56,6 +57,7 @@
   const GESTURE_AXIS_LOCK_PX = 8;
   const els = {
     phone: document.getElementById('phone'),
+    layerDesktop: document.getElementById('layer-desktop'),
     layerFeed: document.getElementById('layer-feed'),
     layerInbox: document.getElementById('layer-inbox'),
     inboxRevealRoot: document.getElementById('inboxRevealRoot'),
@@ -86,6 +88,7 @@
   };
 
   let showFeed = VARIANT.startOnFeed;
+  let showDesktop = false;
   let autoExpandEntryConsumed = false;
   let showAlbum = false;
   let readLabels = new Set();
@@ -101,6 +104,7 @@
   let allReadHintActive = false;
   let allReadHintTextSuppressed = false;
   let allReadHintGestureOffsetPx = 0;
+  let allReadCollapsePendingAfterDesktopReturn = false;
   const ASSET = '../../shared/assets/inbox/';
   let effectCoverTimer = null;
   let effectCoverLoadStarted = false;
@@ -138,6 +142,7 @@
     allReadHintActive = false;
     allReadHintTextSuppressed = false;
     allReadHintGestureOffsetPx = 0;
+    allReadCollapsePendingAfterDesktopReturn = false;
   }
 
   function noteAllReadReached() {
@@ -154,6 +159,7 @@
     allReadHintActive = false;
     allReadHintTextSuppressed = false;
     allReadHintGestureOffsetPx = 0;
+    allReadCollapsePendingAfterDesktopReturn = false;
   }
 
   function clearAllReadHint() {
@@ -2081,7 +2087,27 @@
 
   function shouldBackgroundCollapseAllRead() {
     return allReadAutoCollapseEnabled()
+      && !IS_V3
       && allReadAutoCollapseEligible
+      && allOtherStoriesRead()
+      && !manualCollapseAfterAllRead
+      && reveal.isSkylightSubstantiallyOpen();
+  }
+
+  function shouldMarkDesktopReturnAllReadCollapse() {
+    return IS_V3
+      && desktopEnabled()
+      && allReadAutoCollapseEnabled()
+      && allReadAutoCollapseEligible
+      && allOtherStoriesRead()
+      && !manualCollapseAfterAllRead
+      && reveal.isSkylightSubstantiallyOpen();
+  }
+
+  function shouldCollapseAllReadAfterDesktopReturn() {
+    return IS_V3
+      && allReadCollapsePendingAfterDesktopReturn
+      && allReadAutoCollapseEnabled()
       && allOtherStoriesRead()
       && !manualCollapseAfterAllRead
       && reveal.isSkylightSubstantiallyOpen();
@@ -2091,6 +2117,7 @@
   function setSystemBarMode(mode) {
     els.phone?.classList.toggle('feed-mode', mode === 'feed');
     els.phone?.classList.toggle('inbox-mode', mode === 'inbox');
+    els.phone?.classList.toggle('desktop-mode', mode === 'desktop');
   }
 
   function setBottomNavActive(layer, tab) {
@@ -2103,7 +2130,7 @@
   function syncFeedVideo() {
     const video = document.getElementById('feedVideo');
     if (!video) return;
-    const shouldPlay = showFeed && !els.layerFeed?.classList.contains('is-hidden');
+    const shouldPlay = !showDesktop && showFeed && !els.layerFeed?.classList.contains('is-hidden');
     if (shouldPlay) {
       video.play().catch(() => {});
     } else {
@@ -2121,7 +2148,16 @@
     else video.addEventListener('loadeddata', markReady, { once: true });
   }
 
+  function applyDesktopLayer() {
+    if (!els.layerDesktop) return;
+    els.layerDesktop.classList.toggle('is-active', showDesktop);
+    els.layerDesktop.setAttribute('aria-hidden', showDesktop ? 'false' : 'true');
+    if (showDesktop) setSystemBarMode('desktop');
+  }
+
   function showInboxLayer() {
+    showDesktop = false;
+    applyDesktopLayer();
     showFeed = false;
     els.layerFeed?.classList.add('is-hidden');
     els.layerInbox?.classList.add('is-active');
@@ -2129,6 +2165,21 @@
     setBottomNavActive(els.layerFeed, 'inbox');
     setBottomNavActive(els.layerInbox, 'inbox');
     syncFeedVideo();
+    if (allReadCollapsePendingAfterDesktopReturn) {
+      if (shouldCollapseAllReadAfterDesktopReturn()) {
+        allReadCollapsePendingAfterDesktopReturn = false;
+        allReadAutoCollapseEligible = false;
+        allReadHintActive = true;
+        allReadHintTextSuppressed = false;
+        allReadHintGestureOffsetPx = 0;
+        reveal.cancelAutoExpand();
+        reveal.collapseSilentlyForAllRead();
+        return;
+      }
+      if (!allOtherStoriesRead() || manualCollapseAfterAllRead || !reveal.isSkylightSubstantiallyOpen()) {
+        allReadCollapsePendingAfterDesktopReturn = false;
+      }
+    }
     const shouldAutoExpand = cfg.autoExpandOnEnter === true
       && !cfg.lockStoryExpanded
       && !allReadHintBlocksAutoExpand()
@@ -2153,15 +2204,20 @@
     reveal.applyVisuals();
   }
 
-  function showFeedLayer() {
+  function showFeedLayer(options = {}) {
+    if (!options.keepDesktop) {
+      showDesktop = false;
+      applyDesktopLayer();
+    }
     const shouldCollapseAllRead = shouldBackgroundCollapseAllRead();
     const feedLayer = els.layerFeed;
-    if (shouldCollapseAllRead && feedLayer) {
+    const instantFeed = options.instant === true;
+    if ((shouldCollapseAllRead || instantFeed) && feedLayer) {
       feedLayer.style.transition = 'none';
     }
     showFeed = true;
     feedLayer?.classList.remove('is-hidden');
-    if (shouldCollapseAllRead && feedLayer) {
+    if ((shouldCollapseAllRead || instantFeed) && feedLayer) {
       void feedLayer.offsetHeight;
     }
     els.layerInbox?.classList.remove('is-active');
@@ -2181,6 +2237,10 @@
           feedLayer.style.transition = '';
         });
       }
+    } else if (instantFeed && feedLayer) {
+      requestAnimationFrame(() => {
+        feedLayer.style.transition = '';
+      });
     } else {
       applyAllReadCollapsedHint();
     }
@@ -2477,6 +2537,46 @@
     });
   }
 
+  function desktopEnabled() {
+    return cfg.desktopEnabled === true && !!els.layerDesktop;
+  }
+
+  function showDesktopLayer() {
+    if (!desktopEnabled()) return;
+    if (shouldMarkDesktopReturnAllReadCollapse()) {
+      allReadCollapsePendingAfterDesktopReturn = true;
+    }
+    showDesktop = true;
+    reveal.cancelAutoExpand();
+    reveal.cancelAnim();
+    reveal._touch = null;
+    reveal._activeTouchId = null;
+    clearEffectCoverTimer();
+    closeAlbum();
+    closeStoryAdd();
+    closeStoryPreview();
+    applyDesktopLayer();
+    syncFeedVideo();
+  }
+
+  function hideDesktopAndOpenApp() {
+    if (!desktopEnabled()) return;
+    showFeedLayer({ keepDesktop: true, instant: true });
+    showDesktop = false;
+    applyDesktopLayer();
+    syncFeedVideo();
+  }
+
+  function setupDesktopNav() {
+    if (!desktopEnabled()) return;
+    els.layerDesktop.querySelectorAll('[data-desktop-app]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.desktopApp !== 'tiktok') return;
+        hideDesktopAndOpenApp();
+      });
+    });
+  }
+
   function wrapSkylightRow() {
     if (!els.skylightRow || els.skylightRow.parentElement?.classList.contains('skylight-row-inner')) return;
     const inner = document.createElement('div');
@@ -2487,6 +2587,7 @@
   }
 
   function resetDemo() {
+    showDesktop = false;
     showFeed = VARIANT.startOnFeed;
     autoExpandEntryConsumed = false;
     showAlbum = false;
@@ -2522,6 +2623,7 @@
     reveal.bindScroll();
     setupFeedNav();
     setupInboxNav();
+    setupDesktopNav();
     els.albumCloseBtn && (els.albumCloseBtn.onclick = closeAlbum);
     els.storyAddClose && (els.storyAddClose.onclick = closeStoryAdd);
     els.storyPreviewClose && (els.storyPreviewClose.onclick = closeStoryPreview);
@@ -2539,20 +2641,24 @@
     reveal.applyVisuals();
     if (VARIANT.startOnFeed) showFeedLayer();
     else showInboxLayer();
+    applyDesktopLayer();
     syncFeedVideo();
 
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'skylight:reload') resetDemo();
+      if (e.data?.type === 'skylight:exit-to-desktop') showDesktopLayer();
       if (e.data?.type === 'skylight:preview-click') {
         reveal.previewClickAt(Number(e.data.x) || 0, Number(e.data.y) || 0);
       }
       if (e.data?.type === 'skylight:preview-gesture-start') {
+        if (showDesktop) return;
         reveal.handlePreviewGestureStart(
           Number(e.data.clientX ?? e.data.x) || 0,
           Number(e.data.clientY ?? e.data.y) || 0,
         );
       }
       if (e.data?.type === 'skylight:preview-gesture-move') {
+        if (showDesktop) return;
         reveal.handlePreviewGestureMove(
           Number(e.data.clientX ?? e.data.x) || 0,
           Number(e.data.clientY ?? e.data.y) || 0,
@@ -2561,9 +2667,11 @@
         );
       }
       if (e.data?.type === 'skylight:preview-gesture-active') {
+        if (showDesktop) return;
         reveal.setGestureActive(!!e.data.active);
       }
       if (e.data?.type === 'skylight:preview-gesture-end') {
+        if (showDesktop) return;
         reveal.handlePreviewGestureEnd(Number(e.data.velocityY));
       }
     });
