@@ -2115,6 +2115,9 @@ html.variant-embed body.variant-embed {
 .phone.inbox-mode .system-home-indicator {
   background: #fff;
 }
+.variant-v3 .phone.inbox-mode .system-home-indicator {
+  box-shadow: 0 -1px 0 #fff;
+}
 .phone.inbox-mode .system-home-indicator-handle {
   --system-home-handle: #161823;
   background: #161823;
