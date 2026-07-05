@@ -2115,7 +2115,7 @@ html.variant-embed body.variant-embed {
 .phone.inbox-mode .system-home-indicator {
   background: #fff;
 }
-.variant-v3 .phone.inbox-mode .system-home-indicator {
+.variant-v3 .phone.inbox-mode:not(.overlay-dark-mode) .system-home-indicator {
   box-shadow: 0 -1px 0 #fff;
 }
 .phone.inbox-mode .system-home-indicator-handle {
@@ -2124,6 +2124,7 @@ html.variant-embed body.variant-embed {
 }
 .phone.overlay-dark-mode .system-home-indicator {
   background: #000;
+  box-shadow: none;
 }
 .phone.overlay-dark-mode .system-home-indicator-handle {
   background: #fff;
