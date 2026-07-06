@@ -2173,10 +2173,10 @@
     }
     showDesktop = false;
     applyDesktopLayer();
+    setSystemBarMode('inbox');
     showFeed = false;
     els.layerFeed?.classList.add('is-hidden');
     els.layerInbox?.classList.add('is-active');
-    setSystemBarMode('inbox');
     setBottomNavActive(els.layerFeed, 'inbox');
     setBottomNavActive(els.layerInbox, 'inbox');
     syncFeedVideo();
@@ -2224,6 +2224,7 @@
       showDesktop = false;
       applyDesktopLayer();
     }
+    setSystemBarMode('feed');
     const shouldCollapseAllRead = shouldBackgroundCollapseAllRead();
     const feedLayer = els.layerFeed;
     const instantFeed = options.instant === true;
@@ -2236,7 +2237,6 @@
       void feedLayer.offsetHeight;
     }
     els.layerInbox?.classList.remove('is-active');
-    setSystemBarMode('feed');
     setBottomNavActive(els.layerFeed, 'home');
     setBottomNavActive(els.layerInbox, null);
     syncFeedVideo();

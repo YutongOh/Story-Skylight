@@ -502,7 +502,7 @@ def feed_html() -> str:
           <div class="feed-avatar-section">
             <div class="feed-avatar-wrap">
               <div class="feed-avatar-ring"><img class="feed-avatar" src="{a('images/feed_avatar.png')}" alt="" /></div>
-              <img class="feed-follow" src="{a('icons/feed_follow.svg')}" width="28" height="20" alt="" /></div></div>
+              <img class="feed-follow" src="{a('icons/feed_follow.svg')}?v=2" width="28" height="20" alt="" /></div></div>
           <div class="feed-action feed-action-like"><img class="feed-action-icon" src="{a('icons/feed/icon_color_like_shadow.png')}" width="32" height="32" alt="" /><span class="feed-action-label">991K</span></div>
           <div class="feed-action feed-action-comment"><img class="feed-action-icon" src="{a('icons/feed/icon_color_comment_shadow.png')}" width="32" height="32" alt="" /><span class="feed-action-label">3456</span></div>
           <div class="feed-action feed-action-share"><img class="feed-action-icon" src="{a('icons/feed/icon_color_share_shadow.png')}" width="32" height="32" alt="" /><span class="feed-action-label">1256</span></div>
@@ -746,7 +746,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../shared/skylight.css?v=36" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v=38" />
 </head>
 <body class="variant-embed">
   <div class="phone" id="phone">
@@ -770,7 +770,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=83"></script>
+  <script src="../../shared/skylight-core.js?v=111"></script>
 </body>
 </html>"""
 

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="28" height="20" viewBox="0 0 28 20" fill="none">
-  <path fill="#FE2C55" d="M10 0h8a10 10 0 1 1 0 20h-8a10 10 0 1 1 0-20Z"/>
-  <path fill="#FFF" d="M14 5a1 1 0 0 1 1 1v3h3a1 1 0 0 1 1 1v1.5a1 1 0 0 1-1 1h-3v3a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-3H10a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1h3V6a1 1 0 0 1 1-1H14Z"/>
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g id="Follow Button">
+    <rect width="28" height="20" rx="10" fill="var(--fill-0, #FE2C55)"/>
+    <path id="Plus" d="M14 5C14.5523 5 15 5.44772 15 6V9H18C18.5523 9 19 9.44772 19 10C19 10.5523 18.5523 11 18 11H15V14C15 14.5523 14.5523 15 14 15C13.4477 15 13 14.5523 13 14V11H10C9.44772 11 9 10.5523 9 10C9 9.44772 9.44772 9 10 9H13V6C13 5.44772 13.4477 5 14 5Z" fill="var(--fill-0, white)"/>
+  </g>
 </svg>
