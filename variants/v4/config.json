@@ -28,10 +28,11 @@
   "storySlideEnabled": true,
   "autoExpandOnEnter": true,
   "autoExpandOncePerRun": true,
+  "inboxTabUnreadDotOnce": true,
   "startExpanded": false,
   "topDownStoryRevealEnabled": false,
   "lockStoryExpanded": false,
   "chainRefreshAfterExpand": false,
   "releaseHintEnabled": true,
-  "releaseHintText": "Release to show story"
+  "releaseHintText": "Pull down to view story"
 }

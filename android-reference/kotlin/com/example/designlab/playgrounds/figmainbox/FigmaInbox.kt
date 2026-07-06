@@ -142,7 +142,7 @@ fun FigmaInboxScreen(
     onHomeTabClick: () -> Unit = {},
     inboxActive: Boolean = true,
     releaseHintEnabled: Boolean = false,
-    releaseHintText: String = "Release to show story",
+    releaseHintText: String = "Pull down to view story",
     topDownStoryRevealEnabled: Boolean = false,
     lockStoryExpanded: Boolean = false,
     chainRefreshAfterExpand: Boolean = false,

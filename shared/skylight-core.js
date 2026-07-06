@@ -34,6 +34,7 @@
     id: cfg.id || '',
   };
   const IS_V3 = VARIANT.id === 'v3';
+  const ADD_UNREAD_STORIES_ON_REFRESH = cfg.addUnreadStoriesOnRefresh === true;
   const USE_INTEGRATED_SLIDE_REVEAL = cfg.integratedSlideReveal === true || VARIANT.id === 'v3';
   const AUTO_EXPAND_ONCE_PER_RUN = cfg.autoExpandOncePerRun === true;
   document.documentElement.dataset.skylightVariant = VARIANT.id;
@@ -90,15 +91,17 @@
   let showFeed = VARIANT.startOnFeed;
   let showDesktop = false;
   let autoExpandEntryConsumed = false;
+  let inboxTabUnreadDotConsumed = false;
   let showAlbum = false;
   let readLabels = new Set();
-  let skylightOrder = ['Lindsey', 'Maren', 'Alena', 'Rayna'];
-  const SKYLIGHT_META = [
+  const INITIAL_SKYLIGHT_META = [
     { label: 'Lindsey', avatar: 'inbox_story_lindsey.png' },
     { label: 'Maren', avatar: 'inbox_story_maren.png' },
     { label: 'Alena', avatar: 'inbox_story_alena.png' },
     { label: 'Rayna', avatar: 'inbox_story_rayna.png' },
   ];
+  let skylightStoryMeta = INITIAL_SKYLIGHT_META.map((story) => ({ ...story }));
+  let skylightOrder = INITIAL_SKYLIGHT_META.map(({ label }) => label);
   let allReadAutoCollapseEligible = false;
   let manualCollapseAfterAllRead = false;
   let allReadHintActive = false;
@@ -133,7 +136,7 @@
   }
 
   function allOtherStoriesRead() {
-    return SKYLIGHT_META.every(({ label }) => readLabels.has(label));
+    return skylightStoryMeta.every(({ label }) => readLabels.has(label));
   }
 
   function resetAllReadAutoCollapseState() {
@@ -229,7 +232,7 @@
     if (!hint) return;
     const visible = allReadCollapsedHintVisible();
     if (visible) {
-      hint.textContent = cfg.allReadCollapsedHintText || 'Release to show Story';
+      hint.textContent = cfg.allReadCollapsedHintText || 'Pull down to view story';
       hint.style.height = `${allReadCollapsedHintHeight()}px`;
       hint.style.opacity = '1';
       hint.style.background = 'var(--inbox-page)';
@@ -1126,7 +1129,7 @@
       const hint = els.storyReleaseHint;
       if (!hint) return;
       const visible = cfg.releaseHintEnabled === true && !this.expanded && !this.isAnimating && this.reveal > 0.5 && this.refreshOffset <= 0.5;
-      hint.textContent = cfg.releaseHintText || 'Release to show story';
+      hint.textContent = cfg.releaseHintText || 'Pull down to view story';
       hint.style.height = `${this.reveal}px`;
       hint.style.opacity = visible ? `${this.pullThresholdPx > 0 ? clamp01(this.reveal / this.pullThresholdPx) : 1}` : '0';
     }
@@ -1571,6 +1574,7 @@
           () => {
             this.isRefreshing = false;
             this.refreshLooping = false;
+            if (ADD_UNREAD_STORIES_ON_REFRESH) addUnreadStoriesFromRefresh();
             this.applyVisuals();
           },
           { affectsReveal: false },
@@ -2127,6 +2131,13 @@
     });
   }
 
+  function syncInboxTabUnreadDot() {
+    const showDot = cfg.inboxTabUnreadDotOnce === true && !inboxTabUnreadDotConsumed;
+    document.querySelectorAll('.feed-nav-cell[data-feed-nav="inbox"]').forEach((btn) => {
+      btn.classList.toggle('has-inbox-tab-dot', showDot);
+    });
+  }
+
   function syncFeedVideo() {
     const video = document.getElementById('feedVideo');
     if (!video) return;
@@ -2156,6 +2167,10 @@
   }
 
   function showInboxLayer() {
+    if (cfg.inboxTabUnreadDotOnce === true && !inboxTabUnreadDotConsumed) {
+      inboxTabUnreadDotConsumed = true;
+      syncInboxTabUnreadDot();
+    }
     showDesktop = false;
     applyDesktopLayer();
     showFeed = false;
@@ -2258,7 +2273,7 @@
       `</span></span><span class="skylight-label">Create</span></button>`,
     ].join('');
     skylightOrder.forEach((label) => {
-      const meta = SKYLIGHT_META.find((s) => s.label === label);
+      const meta = skylightStoryMeta.find((s) => s.label === label);
       if (!meta) return;
       const readCls = readLabels.has(label) ? ' read' : '';
       html += [
@@ -2283,6 +2298,50 @@
     readLabels.add(label);
     moveStoryToTail(label);
     noteAllReadReached();
+  }
+
+  function resetSkylightStoriesToInitial() {
+    skylightStoryMeta = INITIAL_SKYLIGHT_META.map((story) => ({ ...story }));
+    skylightOrder = INITIAL_SKYLIGHT_META.map(({ label }) => label);
+  }
+
+  function normalizeRefreshStory(story) {
+    if (!story || !story.label || !story.avatar) return null;
+    return {
+      label: String(story.label),
+      avatar: String(story.avatar),
+      timeText: story.timeText ? String(story.timeText) : 'now',
+      photos: Array.isArray(story.photos) ? story.photos.map(String).filter(Boolean) : [],
+    };
+  }
+
+  function addUnreadStoriesFromRefresh() {
+    const incoming = Array.isArray(cfg.refreshNewStories)
+      ? cfg.refreshNewStories.map(normalizeRefreshStory).filter(Boolean)
+      : [];
+    if (!incoming.length) return;
+    const incomingLabels = [];
+    incoming.forEach((story) => {
+      incomingLabels.push(story.label);
+      readLabels.delete(story.label);
+      skylightStoryMeta = skylightStoryMeta.filter(({ label }) => label !== story.label).concat({
+        label: story.label,
+        avatar: story.avatar,
+      });
+      if (story.photos.length && !previews[story.label]) {
+        previews[story.label] = {
+          avatar: story.avatar,
+          timeText: story.timeText,
+          photos: story.photos,
+        };
+      }
+    });
+    skylightOrder = incomingLabels.concat(skylightOrder.filter((label) => !incomingLabels.includes(label)));
+    pendingViewedLabel = null;
+    clearTimeout(pendingViewedTimer);
+    pendingViewedTimer = null;
+    resetAllReadAutoCollapseState();
+    renderSkylight();
   }
 
   function commitPendingStoryViewed() {
@@ -2590,9 +2649,10 @@
     showDesktop = false;
     showFeed = VARIANT.startOnFeed;
     autoExpandEntryConsumed = false;
+    inboxTabUnreadDotConsumed = false;
     showAlbum = false;
     readLabels = new Set();
-    skylightOrder = ['Lindsey', 'Maren', 'Alena', 'Rayna'];
+    resetSkylightStoriesToInitial();
     resetAllReadAutoCollapseState();
     if (reveal._animFrame) {
       cancelAnimationFrame(reveal._animFrame);
@@ -2611,6 +2671,7 @@
     closeStoryAdd();
     closeStoryPreview();
     renderSkylight();
+    syncInboxTabUnreadDot();
     reveal.applyVisuals();
     if (showFeed) showFeedLayer();
     else showInboxLayer();
@@ -2619,6 +2680,7 @@
   function init() {
     wrapSkylightRow();
     renderSkylight();
+    syncInboxTabUnreadDot();
     setupFeedVideo();
     reveal.bindScroll();
     setupFeedNav();

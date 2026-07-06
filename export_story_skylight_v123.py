@@ -70,7 +70,7 @@ VARIANTS = {
         "lockStoryExpanded": False,
         "chainRefreshAfterExpand": False,
         "releaseHintEnabled": True,
-        "releaseHintText": "Release to show story",
+        "releaseHintText": "Pull down to view story",
     },
 }
 
@@ -551,7 +551,7 @@ def inbox_layer_html() -> str:
               </div>
             </div>
             <div id="storyRevealSlot" class="story-reveal-slot">{skylight_row_html()}</div>
-            <div id="storyReleaseHint" class="story-release-hint" aria-hidden="true">Release to show story</div>
+            <div id="storyReleaseHint" class="story-release-hint" aria-hidden="true">Pull down to view story</div>
             <div id="inboxListLayer" class="inbox-list-layer">
               <div id="inboxScroll" class="inbox-scroll">{inbox_cells_html()}</div>
             </div>
@@ -746,7 +746,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../shared/skylight.css?v=27" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v=36" />
 </head>
 <body class="variant-embed">
   <div class="phone" id="phone">

@@ -34,13 +34,35 @@
   "integratedOpacityEndProgress": 0.85,
   "autoExpandOnEnter": true,
   "autoExpandOncePerRun": true,
+  "inboxTabUnreadDotOnce": true,
   "startExpanded": true,
   "topDownStoryRevealEnabled": true,
   "lockStoryExpanded": false,
   "chainRefreshAfterExpand": true,
+  "addUnreadStoriesOnRefresh": true,
+  "refreshNewStories": [
+    {
+      "label": "Cenis",
+      "avatar": "inbox_avatar_cenis.png",
+      "timeText": "now",
+      "photos": ["lindsey_story_photo_1.png", "lindsey_story_photo_2.png", "lindsey_story_photo_3.png"]
+    },
+    {
+      "label": "Tommy",
+      "avatar": "inbox_avatar_tommy.png",
+      "timeText": "now",
+      "photos": ["maren_story_photo_1.jpg", "maren_story_photo_2.jpg", "maren_story_photo_3.jpg"]
+    },
+    {
+      "label": "summer",
+      "avatar": "inbox_avatar_summer.png",
+      "timeText": "now",
+      "photos": ["rayna_story_photo_1.jpg", "rayna_story_photo_2.jpg", "rayna_story_photo_3.jpg"]
+    }
+  ],
   "allReadAutoCollapseEnabled": true,
   "allReadCollapsedHintEnabled": true,
-  "allReadCollapsedHintText": "Release to show Story",
+  "allReadCollapsedHintText": "Pull down to view story",
   "releaseHintEnabled": false,
   "desktopEnabled": true
 }

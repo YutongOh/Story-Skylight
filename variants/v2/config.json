@@ -33,12 +33,13 @@
   "overlayOpacityEndProgress": 1,
   "autoExpandOnEnter": true,
   "autoExpandOncePerRun": true,
+  "inboxTabUnreadDotOnce": true,
   "startExpanded": false,
   "topDownStoryRevealEnabled": false,
   "lockStoryExpanded": false,
   "chainRefreshAfterExpand": true,
   "allReadAutoCollapseEnabled": true,
   "allReadCollapsedHintEnabled": true,
-  "allReadCollapsedHintText": "Release to show Story",
+  "allReadCollapsedHintText": "Pull down to view story",
   "releaseHintEnabled": false
 }

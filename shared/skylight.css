@@ -531,7 +531,14 @@ html, body {
   display: flex; align-items: center; justify-content: center; margin: 0 auto;
 }
 .feed-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: block; }
-.feed-follow { position: absolute; left: 8px; top: 34px; width: 28px; height: 20px; display: block; }
+.feed-follow {
+  position: absolute;
+  left: 8px;
+  top: 34px;
+  width: 28px;
+  height: 20px;
+  display: block;
+}
 .feed-action { width: 62px; position: relative; flex: 0 0 auto; }
 .feed-action-like { height: 59px; }
 .feed-action-comment { height: 65px; }
@@ -1842,6 +1849,17 @@ body.is-gesture-active ::selection {
 }
 .inbox-bottom-nav .feed-nav-icon--lite img {
   display: block;
+}
+.feed-nav-cell.has-inbox-tab-dot .feed-nav-icon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fe2c55;
+  pointer-events: none;
 }
 .inbox-bottom-nav .feed-nav-label {
   width: 100%;
