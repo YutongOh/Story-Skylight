@@ -7,7 +7,7 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '159';
+  const PREVIEW_BUILD = '160';
   const HOVER_DWELL_MS = 1500;
   const HOVER_THROTTLE_MS = 80;
   const HOVER_MINI_SCALE = 0.3;
@@ -42,6 +42,11 @@
     hoverDestinationSubtitle: document.getElementById('hoverDestinationSubtitle'),
     hoverMiniViewport: document.getElementById('hoverMiniViewport'),
     hoverMiniFrame: document.getElementById('hoverMiniFrame'),
+    measureBtn: document.getElementById('measureBtn'),
+    measureHighlight: document.getElementById('measure-highlight'),
+    measureGapHighlight: document.getElementById('measure-gap-highlight'),
+    measureSpacingGuides: document.getElementById('measure-spacing-guides'),
+    measurePanel: document.getElementById('measure-panel'),
   };
 
   let currentVariant = 'v1';
@@ -474,6 +479,7 @@
     }
 
     els.phoneWrap.addEventListener('pointermove', (e) => {
+      if (document.body.classList.contains('measure-mode')) return;
       if (demoRunning) {
         clearHoverTimer();
         return;
@@ -561,6 +567,7 @@
     }
 
     els.phoneWrap.addEventListener('pointerdown', (e) => {
+      if (document.body.classList.contains('measure-mode')) return;
       if (demoRunning) return;
       if (e.button !== 0) return;
       const point = framePointFromClient(e.clientX, e.clientY);
@@ -925,6 +932,21 @@
   setupTouchCursor();
   setupHoverDestinationPreview();
   setupPreviewGestures();
+  if (typeof setupSkylightMeasureTool === 'function') {
+    setupSkylightMeasureTool({
+      els,
+      framePointFromClient,
+      FRAME_W,
+      FRAME_H,
+      onModeChange(active) {
+        document.body.classList.toggle('is-measure-running', active);
+        if (active && els.hoverDestinationPanel) {
+          els.hoverDestinationPanel.classList.remove('is-visible');
+          els.hoverDestinationPanel.hidden = true;
+        }
+      },
+    });
+  }
 
   currentVariant = parseVariantFromUrl();
   setVariant(currentVariant, true);
