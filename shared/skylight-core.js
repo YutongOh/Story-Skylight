@@ -147,6 +147,7 @@
     allReadHintTextSuppressed = false;
     allReadHintGestureOffsetPx = 0;
     allReadCollapsePendingAfterDesktopReturn = false;
+    syncAllReadHintScrollCompensation();
   }
 
   function noteAllReadReached() {
@@ -164,6 +165,7 @@
     allReadHintTextSuppressed = false;
     allReadHintGestureOffsetPx = 0;
     allReadCollapsePendingAfterDesktopReturn = false;
+    syncAllReadHintScrollCompensation();
   }
 
   function clearAllReadHint() {
@@ -171,6 +173,7 @@
     allReadHintActive = false;
     allReadHintTextSuppressed = false;
     allReadHintGestureOffsetPx = 0;
+    syncAllReadHintScrollCompensation();
     if (!els.storyReleaseHint) return;
     els.storyReleaseHint.style.opacity = '0';
     els.storyReleaseHint.style.height = '0px';
@@ -196,6 +199,14 @@
     return allReadCollapsedHintVisible() ? allReadCollapsedHintHeight() : allReadHintGestureOffsetPx;
   }
 
+  function syncAllReadHintScrollCompensation() {
+    if (!els.inboxScroll) return;
+    const offset = ALL_READ_HINT_IN_FLOW && !showFeed ? allReadCollapsedHintOffset() : 0;
+    const value = offset > 0.5 ? `${offset}px` : '';
+    els.inboxScroll.style.paddingBottom = value;
+    els.inboxScroll.style.scrollPaddingBottom = value;
+  }
+
   function consumeAllReadHintGestureOffset(controller) {
     if (allReadHintGestureOffsetPx <= 0 || !controller) return;
     const offset = allReadHintGestureOffsetPx;
@@ -213,6 +224,7 @@
     if (!allReadCollapsedHintVisible()) return;
     allReadHintTextSuppressed = true;
     allReadHintGestureOffsetPx = allReadCollapsedHintHeight();
+    syncAllReadHintScrollCompensation();
     if (!els.storyReleaseHint) return;
     els.storyReleaseHint.style.opacity = '0';
     els.storyReleaseHint.style.height = '0px';
@@ -250,6 +262,7 @@
     const hint = els.storyReleaseHint;
     if (!hint) return;
     const visible = allReadCollapsedHintVisible();
+    syncAllReadHintScrollCompensation();
     if (visible) {
       hint.textContent = cfg.allReadCollapsedHintText || 'Pull down to view story';
       hint.style.height = `${allReadCollapsedHintHeight()}px`;
