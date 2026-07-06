@@ -362,6 +362,7 @@
       hotspotId: null,
       timerId: null,
       hideFinishTimer: null,
+      dismissDebounceId: null,
       lastSentAt: 0,
       pendingDest: null,
       miniVariant: null,
@@ -370,6 +371,16 @@
     function hoverMiniFrameSrc(variantId) {
       const variant = VARIANTS.find((item) => item.id === variantId) || VARIANTS[0];
       return `${variant.path}?hoverPreview=1`;
+    }
+
+    function hoverPanelState() {
+      const panel = els.hoverDestinationPanel;
+      if (!panel) {
+        return { panel: null, visible: false, hiding: false, shown: false };
+      }
+      const visible = !panel.hidden && panel.classList.contains('is-visible');
+      const hiding = panel.classList.contains('is-hiding');
+      return { panel, visible, hiding, shown: visible || hiding };
     }
 
     function finishHidePanel() {
@@ -395,21 +406,28 @@
     function hideHoverPanel(immediate = false) {
       const panel = els.hoverDestinationPanel;
       if (!panel) return;
+      const { visible, hiding } = hoverPanelState();
+      if (!visible && !hiding && panel.hidden) return;
+      if (hiding && !immediate) return;
+
       if (hover.hideFinishTimer) {
         clearTimeout(hover.hideFinishTimer);
         hover.hideFinishTimer = null;
       }
       panel.removeEventListener('transitionend', onHideTransitionEnd);
-      const wasVisible = panel.classList.contains('is-visible');
-      panel.classList.remove('is-visible');
-      if (!wasVisible || panel.hidden) {
-        finishHidePanel();
-        return;
-      }
+
       if (immediate) {
+        panel.classList.remove('is-visible', 'is-hiding');
         finishHidePanel();
         return;
       }
+
+      if (!visible) {
+        if (!panel.hidden) finishHidePanel();
+        return;
+      }
+
+      panel.classList.remove('is-visible');
       panel.classList.add('is-hiding');
       panel.hidden = false;
       panel.addEventListener('transitionend', onHideTransitionEnd);
@@ -419,12 +437,31 @@
     dismissHoverPanel = hideHoverPanel;
 
     function clearHoverTimer() {
+      if (hover.dismissDebounceId) {
+        clearTimeout(hover.dismissDebounceId);
+        hover.dismissDebounceId = null;
+      }
       if (hover.timerId) {
         clearTimeout(hover.timerId);
         hover.timerId = null;
       }
       hover.hotspotId = null;
       hideHoverPanel();
+    }
+
+    function scheduleHoverDismiss() {
+      if (hover.dismissDebounceId) return;
+      hover.dismissDebounceId = setTimeout(() => {
+        hover.dismissDebounceId = null;
+        clearHoverTimer();
+      }, 72);
+    }
+
+    function cancelHoverDismiss() {
+      if (hover.dismissDebounceId) {
+        clearTimeout(hover.dismissDebounceId);
+        hover.dismissDebounceId = null;
+      }
     }
 
     function postHoverPreviewToMini(dest) {
@@ -487,15 +524,26 @@
         clearHoverTimer();
         return;
       }
+      cancelHoverDismiss();
       const hotspotId = dest?.id || null;
       if (!hotspotId) {
-        clearHoverTimer();
+        scheduleHoverDismiss();
         return;
       }
-      if (hover.hotspotId === hotspotId && hover.timerId) return;
+      const { visible, hiding } = hoverPanelState();
+      if (hover.hotspotId === hotspotId) {
+        if (hover.timerId) return;
+        if (visible || hiding) return;
+      }
+
+      const hotspotChanged = hover.hotspotId !== hotspotId;
       if (hover.timerId) clearTimeout(hover.timerId);
       hover.hotspotId = hotspotId;
-      hideHoverPanel();
+
+      if (hotspotChanged && (visible || hiding)) {
+        hideHoverPanel();
+      }
+
       hover.timerId = setTimeout(() => {
         hover.timerId = null;
         if (hover.hotspotId === hotspotId) {
@@ -508,9 +556,10 @@
       if (e.data?.type !== 'skylight:hover-destination') return;
       const hotspotId = e.data.id || null;
       if (!hotspotId) {
-        clearHoverTimer();
+        scheduleHoverDismiss();
         return;
       }
+      cancelHoverDismiss();
       scheduleHoverReveal({
         id: hotspotId,
         title: e.data.title || '',
