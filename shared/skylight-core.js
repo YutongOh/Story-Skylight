@@ -2518,9 +2518,8 @@
   function handleCreateItemClick(event, btn) {
     event.preventDefault();
     event.stopPropagation();
-    const isRead = readLabels.has(CREATE_STORY_LABEL);
     const hitPlus = isCreatePlusBadgeHit(event, btn);
-    if (createStoryBorderEnabled && isRead && hitPlus) {
+    if (hitPlus) {
       openStoryAdd();
       return;
     }
