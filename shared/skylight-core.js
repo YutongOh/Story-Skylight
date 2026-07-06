@@ -2505,14 +2505,94 @@
     pendingViewedLabel = null;
   }
 
-  function isCreatePlusBadgeHit(event, btn) {
+  function isPlusBadgeHitAt(x, y, btn) {
     const badge = btn.querySelector('.skylight-plus-badge');
     if (!badge) return false;
+    const rect = badge.getBoundingClientRect();
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  }
+
+  function isCreatePlusBadgeHit(event, btn) {
     if (event.target?.closest?.('.skylight-plus-badge')) return true;
     const { clientX, clientY } = event;
     if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
-    const rect = badge.getBoundingClientRect();
-    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+    return isPlusBadgeHitAt(clientX, clientY, btn);
+  }
+
+  function hoverDestinationBlocked() {
+    if (els.storyPreview && !els.storyPreview.hidden) return true;
+    if (els.storyAddSheet && !els.storyAddSheet.hidden) return true;
+    if (showAlbum) return true;
+    return false;
+  }
+
+  function findMainNavClickableAt(x, y) {
+    const selector = '[data-story-label], [data-skylight-action="create"], [data-feed-nav], .feed-nav-create, [data-desktop-app]';
+    const targets = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
+    for (const target of targets) {
+      if (!target) continue;
+      const clickable = target.closest?.(selector);
+      if (!clickable) continue;
+      const rect = clickable.getBoundingClientRect();
+      if (!rect.width || !rect.height) continue;
+      const style = getComputedStyle(clickable);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') continue;
+      return clickable;
+    }
+    return null;
+  }
+
+  function resolveHoverDestination(x, y) {
+    if (hoverDestinationBlocked()) return null;
+    const el = findMainNavClickableAt(x, y);
+    if (!el) return null;
+
+    const storyLabel = el.dataset.storyLabel;
+    if (storyLabel) {
+      return { id: `story-${storyLabel}`, title: `${storyLabel} · Story 预览`, subtitle: '' };
+    }
+
+    if (el.dataset.skylightAction === 'create') {
+      if (isPlusBadgeHitAt(x, y, el)) {
+        return { id: 'create-plus', title: 'Add to Story', subtitle: '拍摄相册' };
+      }
+      if (createStoryBorderEnabled) {
+        return { id: 'create-avatar-preview', title: 'Create · Story 预览', subtitle: '' };
+      }
+      return { id: 'create-avatar-add', title: 'Add to Story', subtitle: '拍摄相册' };
+    }
+
+    if (el.dataset.desktopApp) {
+      if (el.dataset.desktopApp !== 'tiktok') return null;
+      return { id: 'desktop-tiktok', title: 'TikTok Lite · Feed', subtitle: '' };
+    }
+
+    const nav = el.dataset.feedNav;
+    if (!nav || nav === 'create') return null;
+
+    const navLabels = { home: 'Home', explore: 'Explore', inbox: 'Inbox', me: 'Me' };
+
+    if (el.closest('.inbox-bottom-nav')) {
+      if (nav === 'home') {
+        return { id: 'inbox-nav-home', title: 'Feed · Home', subtitle: '' };
+      }
+      if (nav === 'inbox') {
+        return { id: 'inbox-nav-inbox', title: 'Inbox', subtitle: '' };
+      }
+      return null;
+    }
+
+    if (el.closest('.feed-bottom-nav')) {
+      if (nav === 'inbox') {
+        return { id: 'feed-nav-inbox', title: 'Inbox', subtitle: '' };
+      }
+      const tabLabel = navLabels[nav];
+      if (tabLabel) {
+        return { id: `feed-nav-${nav}`, title: `Feed · ${tabLabel}`, subtitle: '' };
+      }
+    }
+
+    return null;
   }
 
   function handleCreateItemClick(event, btn) {
@@ -2909,6 +2989,15 @@
       if (e.data?.type === 'skylight:exit-to-desktop') showDesktopLayer();
       if (e.data?.type === 'skylight:create-border-enabled') {
         setCreateStoryBorderEnabled(!!e.data.enabled);
+      }
+      if (e.data?.type === 'skylight:preview-hover') {
+        const dest = resolveHoverDestination(Number(e.data.x) || 0, Number(e.data.y) || 0);
+        window.parent.postMessage({
+          type: 'skylight:hover-destination',
+          id: dest?.id ?? null,
+          title: dest?.title ?? '',
+          subtitle: dest?.subtitle ?? '',
+        }, '*');
       }
       if (e.data?.type === 'skylight:preview-click') {
         reveal.previewClickAt(Number(e.data.x) || 0, Number(e.data.y) || 0);

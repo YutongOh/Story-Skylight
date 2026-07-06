@@ -7,7 +7,9 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '156';
+  const PREVIEW_BUILD = '157';
+  const HOVER_DWELL_MS = 3000;
+  const HOVER_THROTTLE_MS = 80;
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
@@ -32,6 +34,9 @@
     reloadBtn: document.getElementById('reloadBtn'),
     variantCaption: document.getElementById('variantCaption'),
     cursor: document.getElementById('touch-cursor'),
+    hoverDestinationPanel: document.getElementById('hoverDestinationPanel'),
+    hoverDestinationTitle: document.getElementById('hoverDestinationTitle'),
+    hoverDestinationSubtitle: document.getElementById('hoverDestinationSubtitle'),
   };
 
   let currentVariant = 'v1';
@@ -326,6 +331,105 @@
     document.addEventListener('pointermove', (e) => {
       if (!inFrame(e.clientX, e.clientY)) hideCursor();
     }, { passive: true });
+  }
+
+  function setupHoverDestinationPreview() {
+    if (!els.hoverDestinationPanel) return;
+    let isCoarse = false;
+    try {
+      isCoarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    } catch (_) {}
+    if (isCoarse) return;
+
+    const hover = {
+      hotspotId: null,
+      timerId: null,
+      lastSentAt: 0,
+    };
+
+    function hideHoverPanel() {
+      if (!els.hoverDestinationPanel) return;
+      els.hoverDestinationPanel.classList.remove('is-visible');
+      els.hoverDestinationPanel.hidden = true;
+      if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = '';
+      if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = '';
+    }
+
+    function clearHoverTimer() {
+      if (hover.timerId) {
+        clearTimeout(hover.timerId);
+        hover.timerId = null;
+      }
+      hover.hotspotId = null;
+      hideHoverPanel();
+    }
+
+    function showHoverPanel(title, subtitle) {
+      if (!els.hoverDestinationPanel || demoRunning) return;
+      if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = title || '';
+      if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = subtitle || '';
+      els.hoverDestinationPanel.hidden = false;
+      requestAnimationFrame(() => els.hoverDestinationPanel.classList.add('is-visible'));
+    }
+
+    function scheduleHoverReveal(hotspotId, title, subtitle) {
+      if (demoRunning) {
+        clearHoverTimer();
+        return;
+      }
+      if (!hotspotId) {
+        clearHoverTimer();
+        return;
+      }
+      if (hover.hotspotId === hotspotId && hover.timerId) return;
+      if (hover.timerId) clearTimeout(hover.timerId);
+      hover.hotspotId = hotspotId;
+      hideHoverPanel();
+      hover.timerId = setTimeout(() => {
+        hover.timerId = null;
+        if (hover.hotspotId === hotspotId) {
+          showHoverPanel(title, subtitle);
+        }
+      }, HOVER_DWELL_MS);
+    }
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.type !== 'skylight:hover-destination') return;
+      const hotspotId = e.data.id || null;
+      if (!hotspotId) {
+        clearHoverTimer();
+        return;
+      }
+      scheduleHoverReveal(hotspotId, e.data.title || '', e.data.subtitle || '');
+    });
+
+    function inFrame(clientX, clientY) {
+      const rect = frameRect();
+      return clientX >= rect.left && clientX <= rect.right
+        && clientY >= rect.top && clientY <= rect.bottom;
+    }
+
+    els.phoneWrap.addEventListener('pointermove', (e) => {
+      if (demoRunning) {
+        clearHoverTimer();
+        return;
+      }
+      if (!inFrame(e.clientX, e.clientY)) {
+        clearHoverTimer();
+        return;
+      }
+      const now = performance.now();
+      if (now - hover.lastSentAt < HOVER_THROTTLE_MS) return;
+      hover.lastSentAt = now;
+      const point = framePointFromClient(e.clientX, e.clientY);
+      if (!point) {
+        clearHoverTimer();
+        return;
+      }
+      postToFrame('skylight:preview-hover', point);
+    }, { passive: true });
+
+    els.phoneWrap.addEventListener('pointerleave', clearHoverTimer);
   }
 
   function setupPreviewGestures() {
@@ -695,6 +799,10 @@
     }
     if (demoRunning) return;
     demoRunning = true;
+    if (els.hoverDestinationPanel) {
+      els.hoverDestinationPanel.classList.remove('is-visible');
+      els.hoverDestinationPanel.hidden = true;
+    }
     activeDemoToken = {};
     document.body.classList.add('is-demo-running', 'has-touch-cursor');
     if (els.demoBtn) {
@@ -751,6 +859,7 @@
   });
 
   setupTouchCursor();
+  setupHoverDestinationPreview();
   setupPreviewGestures();
 
   currentVariant = parseVariantFromUrl();
