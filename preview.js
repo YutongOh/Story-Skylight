@@ -468,14 +468,22 @@
       hideHoverPanel();
     }
 
+    function dismissOnHotspotLeave() {
+      cancelHoverDismiss();
+      dismissHoverPreview();
+    }
+
     function scheduleHoverDismiss() {
       if (hover.dismissDebounceId) return;
-      const { visible } = hoverPanelState();
-      const delay = visible ? 60 : 72;
+      const { visible, hiding } = hoverPanelState();
+      if (visible || hiding) {
+        dismissOnHotspotLeave();
+        return;
+      }
       hover.dismissDebounceId = setTimeout(() => {
         hover.dismissDebounceId = null;
         dismissHoverPreview();
-      }, delay);
+      }, 72);
     }
 
     function cancelHoverDismiss() {
@@ -614,11 +622,19 @@
         dismissHoverPreview();
         return;
       }
+      const { visible, hiding } = hoverPanelState();
+      if ((visible || hiding) && !inFrame(e.clientX, e.clientY)) {
+        dismissHoverPreview();
+        return;
+      }
       const now = performance.now();
       if (now - hover.lastSentAt < HOVER_THROTTLE_MS) return;
       hover.lastSentAt = now;
-      const point = framePointFromClient(e.clientX, e.clientY, { clamp: true });
-      if (!point) return;
+      const point = framePointFromClient(e.clientX, e.clientY, { clamp: !(visible || hiding) });
+      if (!point) {
+        if (visible || hiding) dismissHoverPreview();
+        return;
+      }
       postToFrame('skylight:preview-hover', point);
     }, { passive: true });
 

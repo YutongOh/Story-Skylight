@@ -1036,7 +1036,7 @@ def write_preview_shell() -> None:
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Story Skylight V1–V4</title>
-  <link rel="stylesheet" href="preview.css?v=41" />
+  <link rel="stylesheet" href="preview.css?v=42" />
 </head>
 <body>
   <div id="shell">
@@ -1128,7 +1128,7 @@ def write_preview_shell() -> None:
   <script src="shared/tux-color-resolver.js"></script>
   <script src="shared/tux-typography-resolver.js"></script>
   <script src="preview-measure.js?v=5"></script>
-  <script src="preview.js?v=56"></script>
+  <script src="preview.js?v=57"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")
