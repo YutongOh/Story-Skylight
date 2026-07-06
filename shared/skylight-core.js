@@ -2159,7 +2159,14 @@
         if (!rect.width || !rect.height) continue;
         const style = getComputedStyle(clickable);
         if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') continue;
-        clickable.click();
+        const clickEvent = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          clientX: x,
+          clientY: y,
+          view: window,
+        });
+        clickable.dispatchEvent(clickEvent);
         return true;
       }
       return false;
@@ -2498,14 +2505,35 @@
     pendingViewedLabel = null;
   }
 
+  function isCreatePlusBadgeHit(event, btn) {
+    const badge = btn.querySelector('.skylight-plus-badge');
+    if (!badge) return false;
+    if (event.target?.closest?.('.skylight-plus-badge')) return true;
+    const { clientX, clientY } = event;
+    if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
+    const rect = badge.getBoundingClientRect();
+    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+  }
+
+  function handleCreateItemClick(event, btn) {
+    event.preventDefault();
+    event.stopPropagation();
+    const isRead = readLabels.has(CREATE_STORY_LABEL);
+    const hitPlus = isCreatePlusBadgeHit(event, btn);
+    if (createStoryBorderEnabled && isRead && hitPlus) {
+      openStoryAdd();
+      return;
+    }
+    if (createStoryBorderEnabled) {
+      openCreateStoryPreview();
+      return;
+    }
+    openStoryAdd();
+  }
+
   function bindSkylightClicks() {
     els.skylightRow?.querySelectorAll('[data-skylight-action="create"]').forEach((btn) => {
-      btn.onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (createStoryBorderEnabled) openCreateStoryPreview();
-        else openStoryAdd();
-      };
+      btn.onclick = (event) => handleCreateItemClick(event, btn);
     });
     els.skylightRow?.querySelectorAll('[data-story-label]').forEach((btn) => {
       btn.onclick = (event) => {
