@@ -413,6 +413,7 @@
       if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = '';
       hover.pendingDest = null;
       hover.shownDestId = null;
+      panel.style.removeProperty('--hover-panel-h');
     }
 
     function onHideTransitionEnd(e) {
@@ -445,6 +446,7 @@
       }
 
       panel.classList.remove('is-visible');
+      panel.style.setProperty('--hover-panel-h', `${panel.offsetHeight}px`);
       panel.classList.add('is-hiding');
       panel.hidden = false;
       panel.addEventListener('transitionend', onHideTransitionEnd);
@@ -467,13 +469,13 @@
     }
 
     function scheduleHoverDismiss() {
-      const { shown } = hoverPanelState();
-      if (shown) return;
       if (hover.dismissDebounceId) return;
+      const { visible } = hoverPanelState();
+      const delay = visible ? 60 : 72;
       hover.dismissDebounceId = setTimeout(() => {
         hover.dismissDebounceId = null;
         dismissHoverPreview();
-      }, 72);
+      }, delay);
     }
 
     function cancelHoverDismiss() {
@@ -536,6 +538,7 @@
       hover.shownDestId = dest.id || null;
       hover.hotspotId = dest.id || null;
       panel.hidden = false;
+      panel.style.setProperty('--hover-panel-h', `${panel.offsetHeight}px`);
       void panel.offsetWidth;
       requestAnimationFrame(() => panel.classList.add('is-visible'));
     }
@@ -550,7 +553,6 @@
       const { visible, hiding } = hoverPanelState();
 
       if (!hotspotId) {
-        if (visible || hiding) return;
         scheduleHoverDismiss();
         return;
       }
@@ -582,7 +584,6 @@
       if (e.data?.type !== 'skylight:hover-destination') return;
       const hotspotId = e.data.id || null;
       if (!hotspotId) {
-        if (hoverPanelState().shown) return;
         scheduleHoverDismiss();
         return;
       }

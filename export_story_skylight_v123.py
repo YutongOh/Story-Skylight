@@ -853,10 +853,10 @@ def story_preview_html() -> str:
 
 
 CSS_VERSIONS = {
-    "v1": 50,
-    "v2": 35,
-    "v3": 50,
-    "v4": 33,
+    "v1": 51,
+    "v2": 36,
+    "v3": 51,
+    "v4": 34,
 }
 
 
@@ -901,7 +901,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=125"></script>
+  <script src="../../shared/skylight-core.js?v=126"></script>
 </body>
 </html>"""
 
@@ -1036,7 +1036,7 @@ def write_preview_shell() -> None:
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Story Skylight V1–V4</title>
-  <link rel="stylesheet" href="preview.css?v=40" />
+  <link rel="stylesheet" href="preview.css?v=41" />
 </head>
 <body>
   <div id="shell">
@@ -1128,7 +1128,7 @@ def write_preview_shell() -> None:
   <script src="shared/tux-color-resolver.js"></script>
   <script src="shared/tux-typography-resolver.js"></script>
   <script src="preview-measure.js?v=5"></script>
-  <script src="preview.js?v=55"></script>
+  <script src="preview.js?v=56"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")

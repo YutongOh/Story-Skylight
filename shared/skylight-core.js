@@ -2673,12 +2673,45 @@
     closeStoryPreview({ instant: true });
   }
 
+  function normalizeHoverInboxPreview() {
+    reveal.stopFling(false);
+    reveal.cancelAutoExpand();
+    reveal.cancelAnim();
+    reveal.refreshOffset = 0;
+    reveal.pushAccum = 0;
+    reveal.setAnimating(false);
+    if (reveal.isIntegratedMode()) {
+      reveal._integratedAnimHiddenPx = null;
+      reveal._integratedOpacityProgress = null;
+      reveal.bakeIntegratedHiddenPx(reveal.maxPx);
+      reveal.integratedRevealPx = 0;
+    } else {
+      reveal.reveal = 0;
+      reveal.slideProgress = 0;
+    }
+    reveal.expanded = false;
+    reveal.storyVisible = false;
+    if (els.inboxListLayer) {
+      els.inboxListLayer.style.transform = '';
+      els.inboxListLayer.style.bottom = '';
+    }
+    if (els.storyRevealSlot) {
+      els.storyRevealSlot.style.height = '0px';
+      els.storyRevealSlot.style.visibility = 'hidden';
+      els.storyRevealSlot.style.opacity = '0';
+      els.storyRevealSlot.style.pointerEvents = 'none';
+    }
+    if (els.inboxScroll) els.inboxScroll.scrollTop = 0;
+    reveal.applyVisuals();
+  }
+
   function applyHoverDestinationPreview(payload = {}) {
     prepareHoverPreviewBase();
+    const scene = payload.scene || '';
+    document.body.dataset.hoverPreviewScene = scene;
     if (payload.createBorderEnabled != null) {
       setCreateStoryBorderEnabled(!!payload.createBorderEnabled);
     }
-    const scene = payload.scene;
     if (scene === 'story-preview' && payload.storyLabel) {
       showInboxLayerSilent();
       const previewOptions = { instant: true, markViewed: false, runProgress: true };
@@ -2688,9 +2721,11 @@
       openStoryPreview(payload.storyLabel, previewOptions);
     } else if (scene === 'story-add') {
       showInboxLayerSilent();
+      normalizeHoverInboxPreview();
       openStoryAdd({ instant: true });
     } else if (scene === 'inbox') {
       showInboxLayerSilent();
+      normalizeHoverInboxPreview();
     } else if (scene === 'feed') {
       showFeedLayer({ instant: true });
       if (payload.feedTab) setBottomNavActive(els.layerFeed, payload.feedTab);

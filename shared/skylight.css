@@ -2848,3 +2848,30 @@ html.skylight-hover-preview body {
   pointer-events: none;
   user-select: none;
 }
+
+html.skylight-hover-preview body[data-hover-preview-scene="inbox"] #storyRevealSlot,
+html.skylight-hover-preview body[data-hover-preview-scene="inbox"] .story-reveal-slot,
+html.skylight-hover-preview body[data-hover-preview-scene="story-add"] #storyRevealSlot,
+html.skylight-hover-preview body[data-hover-preview-scene="story-add"] .story-reveal-slot {
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html.skylight-hover-preview body[data-hover-preview-scene="inbox"] #storyRefreshIndicator,
+html.skylight-hover-preview body[data-hover-preview-scene="inbox"] #storyReleaseHint,
+html.skylight-hover-preview body[data-hover-preview-scene="story-add"] #storyRefreshIndicator,
+html.skylight-hover-preview body[data-hover-preview-scene="story-add"] #storyReleaseHint {
+  display: none !important;
+}
+
+html.skylight-hover-preview body[data-hover-preview-scene="inbox"] #inboxListLayer,
+html.skylight-hover-preview body[data-hover-preview-scene="inbox"] .inbox-list-layer,
+html.skylight-hover-preview body[data-hover-preview-scene="story-add"] #inboxListLayer,
+html.skylight-hover-preview body[data-hover-preview-scene="story-add"] .inbox-list-layer {
+  transform: none !important;
+  top: 0 !important;
+}

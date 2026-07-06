@@ -332,10 +332,8 @@ body.has-touch-cursor #app-frame {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
   width: 124px;
-  height: 316px;
   box-sizing: border-box;
   max-width: min(320px, calc(100vw - 32px));
   padding: 8px;
@@ -357,6 +355,7 @@ body.has-touch-cursor #app-frame {
   pointer-events: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  min-height: var(--hover-panel-h, auto);
 }
 
 .hover-mini-phone {
