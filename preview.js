@@ -640,10 +640,6 @@
     await demoTapPageSelector('#exitBtn', { moveMs: 460, afterMs: 780 });
     await demoTapSelector('#desktopTikTokBtn', { moveMs: 460, afterMs: 760 });
     await demoTapSelector('#feedInboxBtn', { moveMs: 420, afterMs: 760 });
-    await demoDrag([
-      { x: 180, y: 156 },
-      { x: 180, y: 244 },
-    ], { moveMs: 360, stepsPerSegment: 16, stepMs: 22, afterMs: 900 });
   }
 
   async function runBasicDemo() {

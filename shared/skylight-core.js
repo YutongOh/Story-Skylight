@@ -34,6 +34,7 @@
     id: cfg.id || '',
   };
   const IS_V3 = VARIANT.id === 'v3';
+  const ALL_READ_HINT_IN_FLOW = IS_V3;
   const ADD_UNREAD_STORIES_ON_REFRESH = cfg.addUnreadStoriesOnRefresh === true;
   const USE_INTEGRATED_SLIDE_REVEAL = cfg.integratedSlideReveal === true || VARIANT.id === 'v3';
   const AUTO_EXPAND_ONCE_PER_RUN = cfg.autoExpandOncePerRun === true;
@@ -217,6 +218,24 @@
     els.storyReleaseHint.style.height = '0px';
     els.storyReleaseHint.style.background = '';
     els.storyReleaseHint.style.zIndex = '';
+    els.storyReleaseHint.style.transform = '';
+  }
+
+  function allReadHintListScrollTopPx() {
+    if (!ALL_READ_HINT_IN_FLOW || showFeed || !allReadHintActive) return 0;
+    const list = els.inboxScroll;
+    if (!list) return 0;
+    return Math.max(0, list.scrollTop);
+  }
+
+  function applyAllReadHintScrollTransform(hint) {
+    if (!hint) return;
+    if (!ALL_READ_HINT_IN_FLOW) {
+      hint.style.transform = '';
+      return;
+    }
+    const scrollTop = allReadHintListScrollTopPx();
+    hint.style.transform = scrollTop > 0.5 ? `translateY(${-scrollTop}px)` : '';
   }
 
   function restoreAllReadHintIfCollapsed() {
@@ -237,6 +256,7 @@
       hint.style.opacity = '1';
       hint.style.background = 'var(--inbox-page)';
       hint.style.zIndex = '5';
+      applyAllReadHintScrollTransform(hint);
       return;
     }
     if (!allReadHintActive || showFeed || reveal.isSkylightSubstantiallyOpen()) {
@@ -244,6 +264,7 @@
       hint.style.height = '0px';
       hint.style.background = '';
       hint.style.zIndex = '';
+      hint.style.transform = '';
     }
   }
 
@@ -505,6 +526,13 @@
         return this.integratedListScrollTop() <= 0.5 ? 'expanded' : 'listScrolled';
       }
       if (this.isIntegratedMode()) {
+        if (this.usesIntegratedSlideReveal()) {
+          const scrollTop = this.integratedListScrollTop();
+          const listScrolled = scrollTop > 4;
+          if (this.integratedExpanded() && !listScrolled) return 'expanded';
+          if (!listScrolled) return 'collapsed';
+          return 'listScrolled';
+        }
         const scrollTop = this.integratedListScrollTop();
         if (scrollTop <= 0.5) return 'expanded';
         if (scrollTop <= this.maxPx + 4) return 'collapsed';
@@ -969,6 +997,10 @@
       if (!els.inboxScroll || !els.storyRevealSlot) return;
       if (els.storyRevealSlot.parentElement !== els.inboxScroll) {
         els.inboxScroll.insertBefore(els.storyRevealSlot, els.inboxScroll.firstChild);
+      }
+      if (els.storyReleaseHint && els.inboxRevealRoot && els.inboxListLayer
+          && els.storyReleaseHint.parentElement !== els.inboxRevealRoot) {
+        els.inboxRevealRoot.insertBefore(els.storyReleaseHint, els.inboxListLayer);
       }
     }
 
@@ -1473,7 +1505,65 @@
       this.refreshOffset = 0;
     }
 
+    animateIntegratedSlideRevealTabRefreshSequence() {
+      const list = this.listEl();
+      if (!list) {
+        this.runTabRefresh();
+        return;
+      }
+      const listStart = list.scrollTop;
+      const revealStart = this.integratedRevealPx;
+      const needScroll = listStart > 4;
+      const needExpand = !this.integratedExpanded();
+
+      if (!needScroll && !needExpand) {
+        this.runTabRefresh();
+        return;
+      }
+
+      this.beginTabRefreshSequence();
+      list.style.transform = '';
+      this._integratedAnimHiddenPx = null;
+      this.storyVisible = true;
+
+      const duration = TAB_REFRESH_SEQUENCE_MS;
+      const pullTarget = this.refreshIndicatorHeightPx;
+      const revealTarget = this.maxPx;
+      const startedAt = performance.now();
+
+      this.setAnimating(true);
+      const tick = (now) => {
+        const u = Math.min(1, (now - startedAt) / duration);
+        const e = easeOutStandard(u);
+        if (needScroll) list.scrollTop = Math.round(listStart * (1 - e));
+        if (needExpand) {
+          this.integratedRevealPx = revealStart + (revealTarget - revealStart) * e;
+          this._integratedOpacityProgress = clamp01(this.integratedRevealPx / this.maxPx);
+        }
+        this.refreshOffset = pullTarget * e;
+        this.applyVisuals();
+        if (u < 1) {
+          this._animFrame = requestAnimationFrame(tick);
+          return;
+        }
+        this._animFrame = null;
+        this._integratedOpacityProgress = null;
+        this.integratedRevealPx = revealTarget;
+        this.expanded = true;
+        this.storyVisible = true;
+        if (needScroll) list.scrollTop = 0;
+        clearAllReadHint();
+        this.setAnimating(false);
+        this.commitTabRefresh();
+      };
+      this._animFrame = requestAnimationFrame(tick);
+    }
+
     animateIntegratedTabRefreshSequence() {
+      if (this.usesIntegratedSlideReveal()) {
+        this.animateIntegratedSlideRevealTabRefreshSequence();
+        return;
+      }
       const list = this.listEl();
       if (!list) {
         this.runTabRefresh();
