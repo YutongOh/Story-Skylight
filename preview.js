@@ -269,12 +269,27 @@
     };
   }
 
-  function framePointFromClient(clientX, clientY) {
+  function phoneWrapRect() {
+    return els.phoneWrap.getBoundingClientRect();
+  }
+
+  function inPhoneWrap(clientX, clientY) {
+    const rect = phoneWrapRect();
+    return clientX >= rect.left && clientX <= rect.right
+      && clientY >= rect.top && clientY <= rect.bottom;
+  }
+
+  function framePointFromClient(clientX, clientY, options = {}) {
+    const clamp = options.clamp === true;
     const rect = frameRect();
     if (!rect.width || !rect.height) return null;
-    const x = (clientX - rect.left) * (FRAME_W / rect.width);
-    const y = (clientY - rect.top) * (FRAME_H / rect.height);
-    if (x < 0 || y < 0 || x > FRAME_W || y > FRAME_H) return null;
+    let x = (clientX - rect.left) * (FRAME_W / rect.width);
+    let y = (clientY - rect.top) * (FRAME_H / rect.height);
+    if (x < 0 || y < 0 || x > FRAME_W || y > FRAME_H) {
+      if (!clamp) return null;
+      x = Math.max(0, Math.min(FRAME_W, x));
+      y = Math.max(0, Math.min(FRAME_H, y));
+    }
     return { x, y };
   }
 
@@ -360,6 +375,7 @@
 
     const hover = {
       hotspotId: null,
+      shownDestId: null,
       timerId: null,
       hideFinishTimer: null,
       dismissDebounceId: null,
@@ -396,6 +412,7 @@
       if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = '';
       if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = '';
       hover.pendingDest = null;
+      hover.shownDestId = null;
     }
 
     function onHideTransitionEnd(e) {
@@ -436,7 +453,7 @@
 
     dismissHoverPanel = hideHoverPanel;
 
-    function clearHoverTimer() {
+    function dismissHoverPreview() {
       if (hover.dismissDebounceId) {
         clearTimeout(hover.dismissDebounceId);
         hover.dismissDebounceId = null;
@@ -450,10 +467,12 @@
     }
 
     function scheduleHoverDismiss() {
+      const { shown } = hoverPanelState();
+      if (shown) return;
       if (hover.dismissDebounceId) return;
       hover.dismissDebounceId = setTimeout(() => {
         hover.dismissDebounceId = null;
-        clearHoverTimer();
+        dismissHoverPreview();
       }, 72);
     }
 
@@ -514,6 +533,8 @@
       if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = dest.title || '';
       if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = dest.subtitle || '';
       renderHoverMiniPreview(dest);
+      hover.shownDestId = dest.id || null;
+      hover.hotspotId = dest.id || null;
       panel.hidden = false;
       void panel.offsetWidth;
       requestAnimationFrame(() => panel.classList.add('is-visible'));
@@ -521,34 +542,39 @@
 
     function scheduleHoverReveal(dest) {
       if (demoRunning) {
-        clearHoverTimer();
+        dismissHoverPreview();
         return;
       }
       cancelHoverDismiss();
       const hotspotId = dest?.id || null;
+      const { visible, hiding } = hoverPanelState();
+
       if (!hotspotId) {
+        if (visible || hiding) return;
         scheduleHoverDismiss();
         return;
       }
-      const { visible, hiding } = hoverPanelState();
-      if (hover.hotspotId === hotspotId) {
-        if (hover.timerId) return;
-        if (visible || hiding) return;
+
+      if (visible || hiding) {
+        if (hover.shownDestId === hotspotId) return;
+        if (hover.timerId) clearTimeout(hover.timerId);
+        hover.timerId = null;
+        hover.hotspotId = hotspotId;
+        hideHoverPanel();
+        hover.timerId = setTimeout(() => {
+          hover.timerId = null;
+          if (hover.hotspotId === hotspotId) showHoverPanel(dest);
+        }, HOVER_DWELL_MS);
+        return;
       }
 
-      const hotspotChanged = hover.hotspotId !== hotspotId;
+      if (hover.hotspotId === hotspotId && hover.timerId) return;
+
       if (hover.timerId) clearTimeout(hover.timerId);
       hover.hotspotId = hotspotId;
-
-      if (hotspotChanged && (visible || hiding)) {
-        hideHoverPanel();
-      }
-
       hover.timerId = setTimeout(() => {
         hover.timerId = null;
-        if (hover.hotspotId === hotspotId) {
-          showHoverPanel(dest);
-        }
+        if (hover.hotspotId === hotspotId) showHoverPanel(dest);
       }, HOVER_DWELL_MS);
     }
 
@@ -556,6 +582,7 @@
       if (e.data?.type !== 'skylight:hover-destination') return;
       const hotspotId = e.data.id || null;
       if (!hotspotId) {
+        if (hoverPanelState().shown) return;
         scheduleHoverDismiss();
         return;
       }
@@ -579,25 +606,22 @@
     els.phoneWrap.addEventListener('pointermove', (e) => {
       if (document.body.classList.contains('measure-mode')) return;
       if (demoRunning) {
-        clearHoverTimer();
+        dismissHoverPreview();
         return;
       }
-      if (!inFrame(e.clientX, e.clientY)) {
-        clearHoverTimer();
+      if (!inPhoneWrap(e.clientX, e.clientY)) {
+        dismissHoverPreview();
         return;
       }
       const now = performance.now();
       if (now - hover.lastSentAt < HOVER_THROTTLE_MS) return;
       hover.lastSentAt = now;
-      const point = framePointFromClient(e.clientX, e.clientY);
-      if (!point) {
-        clearHoverTimer();
-        return;
-      }
+      const point = framePointFromClient(e.clientX, e.clientY, { clamp: true });
+      if (!point) return;
       postToFrame('skylight:preview-hover', point);
     }, { passive: true });
 
-    els.phoneWrap.addEventListener('pointerleave', clearHoverTimer);
+    els.phoneWrap.addEventListener('pointerleave', dismissHoverPreview);
   }
 
   function setupPreviewGestures() {
