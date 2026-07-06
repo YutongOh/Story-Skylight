@@ -1036,7 +1036,7 @@ def write_preview_shell() -> None:
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Story Skylight V1–V4</title>
-  <link rel="stylesheet" href="preview.css?v=34" />
+  <link rel="stylesheet" href="preview.css?v=35" />
 </head>
 <body>
   <div id="shell">

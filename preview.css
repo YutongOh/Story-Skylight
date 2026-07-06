@@ -331,7 +331,7 @@ body.has-touch-cursor #app-frame {
   z-index: 25;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   max-width: min(320px, calc(100vw - 32px));
   padding: 8px;
@@ -377,8 +377,26 @@ body.has-touch-cursor #app-frame {
 }
 
 .hover-destination-meta {
-  min-width: 0;
+  width: 100%;
   padding: 0 4px 2px;
+  text-align: center;
+}
+
+.hover-destination-title {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: hsl(var(--foreground));
+  text-align: center;
+}
+
+.hover-destination-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
 }
 
 .hover-destination-panel.is-visible {
@@ -389,21 +407,6 @@ body.has-touch-cursor #app-frame {
 
 .hover-destination-kicker {
   display: none;
-}
-
-.hover-destination-title {
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.35;
-  color: hsl(var(--foreground));
-}
-
-.hover-destination-subtitle {
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.35;
-  color: hsl(var(--muted-foreground));
 }
 
 .hover-destination-subtitle:empty {
