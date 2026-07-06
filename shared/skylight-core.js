@@ -33,7 +33,9 @@
     startOnFeed: cfg.startOnFeed !== false,
     id: cfg.id || '',
   };
+  const CREATE_STORY_LABEL = 'Create';
   const IS_V3 = VARIANT.id === 'v3';
+  const USE_FIGMA_CREATE = VARIANT.id === 'v1' || VARIANT.id === 'v3';
   const ALL_READ_HINT_IN_FLOW = IS_V3;
   const ADD_UNREAD_STORIES_ON_REFRESH = cfg.addUnreadStoriesOnRefresh === true;
   const USE_INTEGRATED_SLIDE_REVEAL = cfg.integratedSlideReveal === true || VARIANT.id === 'v3';
@@ -109,6 +111,7 @@
   let allReadHintTextSuppressed = false;
   let allReadHintGestureOffsetPx = 0;
   let allReadCollapsePendingAfterDesktopReturn = false;
+  let createStoryBorderEnabled = cfg.createStoryBorderEnabled === true;
   const ASSET = '../../shared/assets/inbox/';
   let effectCoverTimer = null;
   let effectCoverLoadStarted = false;
@@ -118,6 +121,15 @@
 
   function setOverlayDarkMode(on) {
     els.phone?.classList.toggle('overlay-dark-mode', on);
+  }
+
+  function syncCreateStoryBorder() {
+    document.documentElement.classList.toggle('create-story-border-enabled', createStoryBorderEnabled);
+  }
+
+  function setCreateStoryBorderEnabled(enabled) {
+    createStoryBorderEnabled = !!enabled;
+    syncCreateStoryBorder();
   }
 
   function clamp01(value) {
@@ -1161,7 +1173,11 @@
         if (slideInner) {
           slideInner.style.transform = 'none';
           slideInner.style.opacity = '1';
-          this.applyIntegratedSkylightMask(slideInner);
+          if (cfg.integratedOpacityEnabled === true) {
+            this.clearSkylightMask(slideInner);
+          } else {
+            this.applyIntegratedSkylightMask(slideInner);
+          }
         }
         this.hideReleaseHint();
       }
@@ -2133,13 +2149,16 @@
     }
 
     previewClickAt(x, y) {
-      const target = document.elementFromPoint(x, y);
-      if (!target) return false;
-      const clickable = target.closest(
-        'button, a, [role="button"], [data-story-label], [data-skylight-action], '
-        + '[data-feed-nav], [data-feed-tab], .story-tap-prev, .story-tap-next, .feed-nav-create',
-      );
-      if (clickable) {
+      const clickableSelector = 'button, a, [role="button"], [data-story-label], [data-skylight-action], '
+        + '[data-feed-nav], [data-feed-tab], .story-tap-prev, .story-tap-next, .feed-nav-create';
+      const targets = document.elementsFromPoint ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
+      for (const target of targets) {
+        const clickable = target?.closest?.(clickableSelector);
+        if (!clickable) continue;
+        const rect = clickable.getBoundingClientRect();
+        if (!rect.width || !rect.height) continue;
+        const style = getComputedStyle(clickable);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') continue;
         clickable.click();
         return true;
       }
@@ -2364,9 +2383,24 @@
     }
   }
 
-  function renderSkylight() {
-    if (!els.skylightRow) return;
-    let html = [
+  function renderSkylightCreateItemHtml() {
+    const createReadCls = readLabels.has(CREATE_STORY_LABEL) ? ' read' : '';
+    if (USE_FIGMA_CREATE) {
+      return [
+        `<button type="button" class="skylight-item${createReadCls}" data-skylight-action="create" data-figma="3461:43970">`,
+        `<span class="skylight-avatar-slot">`,
+        `<img class="skylight-create-ring" src="${ASSET}inbox_story_create_ring.svg" alt="" />`,
+        `<span class="skylight-create-body">`,
+        `<img class="skylight-create-photo" src="${ASSET}inbox_story_create_photo.jpg" alt="" />`,
+        `<img class="skylight-create-base" src="${ASSET}inbox_story_create_base.png" alt="" />`,
+        `<span class="skylight-plus-badge">`,
+        `<img class="skylight-create-badge-icon" src="${ASSET}inbox_story_create_badge_icon.svg" alt="" />`,
+        `<img class="skylight-create-badge-stroke" src="${ASSET}inbox_story_create_badge_stroke.svg" alt="" />`,
+        `</span></span></span>`,
+        `<span class="skylight-label">Create</span></button>`,
+      ].join('');
+    }
+    return [
       `<button type="button" class="skylight-item" data-skylight-action="create">`,
       `<span class="skylight-avatar-slot">`,
       `<img class="skylight-create-bg" src="${ASSET}inbox_story_create.png" alt="" />`,
@@ -2375,6 +2409,11 @@
       `<img class="skylight-plus-stroke" src="${ASSET}inbox_story_plus_stroke.png" alt="" />`,
       `</span></span><span class="skylight-label">Create</span></button>`,
     ].join('');
+  }
+
+  function renderSkylight() {
+    if (!els.skylightRow) return;
+    let html = renderSkylightCreateItemHtml();
     skylightOrder.forEach((label) => {
       const meta = skylightStoryMeta.find((s) => s.label === label);
       if (!meta) return;
@@ -2399,7 +2438,11 @@
   function markStoryViewed(label) {
     if (readLabels.has(label)) return;
     readLabels.add(label);
-    moveStoryToTail(label);
+    if (label !== CREATE_STORY_LABEL) {
+      moveStoryToTail(label);
+    } else {
+      renderSkylight();
+    }
     noteAllReadReached();
   }
 
@@ -2460,7 +2503,8 @@
       btn.onclick = (event) => {
         event.preventDefault();
         event.stopPropagation();
-        openStoryAdd();
+        if (createStoryBorderEnabled) openCreateStoryPreview();
+        else openStoryAdd();
       };
     });
     els.skylightRow?.querySelectorAll('[data-story-label]').forEach((btn) => {
@@ -2472,7 +2516,22 @@
     });
   }
 
-  let previewState = { label: null, index: 0, raf: null, start: 0, count: 0 };
+  let previewState = { label: null, index: 0, raf: null, start: 0, count: 0, data: null };
+
+  function createStoryPreviewData() {
+    return previews[CREATE_STORY_LABEL] || {
+      avatar: 'inbox_story_create_photo.jpg',
+      timeText: 'now',
+      photos: previews.Lindsey?.photos?.length
+        ? [...previews.Lindsey.photos]
+        : [
+          'lindsey_story_photo_1.png',
+          'lindsey_story_photo_2.png',
+          'lindsey_story_photo_3.png',
+          'lindsey_story_photo_4.png',
+        ],
+    };
+  }
 
   function buildProgress(count) {
     if (!els.storyProgressRow) return;
@@ -2528,7 +2587,7 @@
   }
 
   function showPreviewPhoto(label, index) {
-    const data = previews[label];
+    const data = previewState.data || previews[label];
     if (!data || !els.storyPhoto) return;
     const file = data.photos[index % data.photos.length];
     els.storyPhoto.style.opacity = '0';
@@ -2541,15 +2600,16 @@
     previewState.start = performance.now();
   }
 
-  function openStoryPreview(label) {
-    const data = previews[label];
+  function openStoryPreview(label, options = {}) {
+    const data = options.data || previews[label];
     if (!data || !els.storyPreview) return;
     clearTimeout(pendingViewedTimer);
-    pendingViewedLabel = readLabels.has(label) ? null : label;
+    pendingViewedLabel = options.markViewed === false || readLabels.has(label) ? null : label;
     previewState.label = label;
+    previewState.data = data;
     previewState.index = 0;
     if (els.storyPreviewAvatar) els.storyPreviewAvatar.src = `${ASSET}${data.avatar}`;
-    if (els.storyPreviewName) els.storyPreviewName.textContent = label;
+    if (els.storyPreviewName) els.storyPreviewName.textContent = label === CREATE_STORY_LABEL ? 'Create' : label;
     if (els.storyPreviewTime) {
       els.storyPreviewTime.textContent = `· ${data.timeText || '3h ago'}`;
     }
@@ -2562,9 +2622,16 @@
     runPreviewProgress(data.photos.length);
   }
 
+  function openCreateStoryPreview() {
+    openStoryPreview(CREATE_STORY_LABEL, {
+      data: createStoryPreviewData(),
+    });
+  }
+
   function closeStoryPreview() {
     stopPreviewProgress();
     commitPendingStoryViewed();
+    previewState.data = null;
     els.storyPreview?.classList.remove('visible');
     setOverlayDarkMode(false);
     setTimeout(() => {
@@ -2808,10 +2875,14 @@
     else showInboxLayer();
     applyDesktopLayer();
     syncFeedVideo();
+    syncCreateStoryBorder();
 
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'skylight:reload') resetDemo();
       if (e.data?.type === 'skylight:exit-to-desktop') showDesktopLayer();
+      if (e.data?.type === 'skylight:create-border-enabled') {
+        setCreateStoryBorderEnabled(!!e.data.enabled);
+      }
       if (e.data?.type === 'skylight:preview-click') {
         reveal.previewClickAt(Number(e.data.x) || 0, Number(e.data.y) || 0);
       }

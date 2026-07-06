@@ -30,8 +30,33 @@
           </svg>
         </button>
       </div>
+      <div class="tool-group">
+        <button type="button" class="icon-btn" id="createBorderBtn" title="Create 边框：关闭" aria-label="Create 边框" aria-pressed="false">
+          <svg class="toolbar-icon toolbar-icon-outline" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="128" cy="128" r="66"></circle>
+            <path d="M128 96v64"></path>
+            <path d="M96 128h64"></path>
+          </svg>
+        </button>
+      </div>
       <div class="toolbar-spacer"></div>
       <div class="tool-group">
+        <button type="button" class="icon-btn" id="exitBtn" title="退出到桌面" aria-label="退出到桌面" hidden>
+          <svg class="toolbar-icon toolbar-icon-outline" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="48" y="48" width="160" height="120" rx="16"></rect>
+            <path d="M88 208h80"></path>
+            <path d="M128 168v40"></path>
+            <path d="M88 108h80"></path>
+            <path d="M108 88 88 108l20 20"></path>
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="demoBtn" title="演示" aria-label="演示">
+          <svg class="toolbar-icon toolbar-icon-outline" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="40" y="56" width="176" height="112" rx="16"></rect>
+            <path d="M104 200h48"></path>
+            <path d="M128 168v32"></path>
+          </svg>
+        </button>
         <button type="button" class="icon-btn" id="reloadBtn" title="重启演示" aria-label="重启">
           <svg class="toolbar-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
             <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"></path>
@@ -50,6 +75,6 @@
     </main>
   </div>
   <div id="touch-cursor" aria-hidden="true"></div>
-  <script src="preview.js?v=46"></script>
+  <script src="preview.js?v=48"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="xMidYMid meet" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Icon/Plus_Small">
+<rect width="20" height="20" rx="10" fill="url(#paint0_linear_0_4)"/>
+<path id="plus_small" d="M9.20817 3.99984C9.09311 3.99984 8.99984 4.09311 8.99984 4.20817V8.99984H4.20817C4.09311 8.99984 3.99984 9.09311 3.99984 9.20817V10.7915C3.99984 10.9066 4.09311 10.9998 4.20817 10.9998H8.99984V15.7915C8.99984 15.9066 9.09311 15.9998 9.20817 15.9998H10.7915C10.9066 15.9998 10.9998 15.9066 10.9998 15.7915V10.9998H15.7915C15.9066 10.9998 15.9998 10.9066 15.9998 10.7915V9.20817C15.9998 9.09311 15.9066 8.99984 15.7915 8.99984H10.9998V4.20817C10.9998 4.09311 10.9066 3.99984 10.7915 3.99984H9.20817Z" fill="#ffffff"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_4" x1="0" y1="0" x2="20.0136" y2="19.9864" gradientUnits="userSpaceOnUse">
+<stop stop-color="#15C0F9"/>
+<stop offset="0.478362" stop-color="#20D5EC"/>
+<stop offset="1" stop-color="#1AE3C6"/>
+</linearGradient>
+</defs>
+</svg>

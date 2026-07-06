@@ -153,6 +153,9 @@
 .inbox-list-layer.is-reveal-animating .skylight-row-inner {
   will-change: transform;
 }
+.inbox-reveal-root.mode-integrated .inbox-list-layer.is-reveal-animating .inbox-scroll {
+  overflow: hidden;
+}
 .inbox-scroll {
   height: 100%;
   min-height: 100%;
@@ -389,6 +392,7 @@ body.is-gesture-active ::selection {
   display: flex;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
 }
 .skylight-create-bg {
   width: 64px;
@@ -396,6 +400,8 @@ body.is-gesture-active ::selection {
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--inbox-shape-n3);
+  position: relative;
+  z-index: 1;
 }
 .skylight-plus-badge {
   position: absolute;
@@ -408,9 +414,30 @@ body.is-gesture-active ::selection {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 3;
 }
-.skylight-plus-icon { width: 10.8px; height: 10.8px; position: absolute; }
-.skylight-plus-stroke { width: 21px; height: 21px; position: absolute; pointer-events: none; }
+.skylight-plus-icon { width: 10.8px; height: 10.8px; position: absolute; z-index: 2; }
+.skylight-plus-stroke { width: 21px; height: 21px; position: absolute; pointer-events: none; z-index: 3; }
+.create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72px;
+  height: 72px;
+  border: 3.5px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #0094ff 0%, #20d5ec 47.8362%, #00ffa3 100%) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
 .skylight-ring {
   width: 72px;
   height: 72px;
@@ -429,12 +456,182 @@ body.is-gesture-active ::selection {
 .skylight-item.read .skylight-avatar-slot::before {
   content: "";
   position: absolute;
+  left: 50%;
+  top: 50%;
   width: 72px;
   height: 72px;
   border-radius: 50%;
   border: 2px solid var(--inbox-shape-n2);
   box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  z-index: 0;
 }
+html[data-skylight-variant="v1"] .skylight-row,
+html[data-skylight-variant="v3"] .skylight-row {
+  gap: 22px;
+  padding: 10px 16px;
+}
+html[data-skylight-variant="v1"] .skylight-item,
+html[data-skylight-variant="v3"] .skylight-item {
+  width: 72px;
+}
+html[data-skylight-variant="v1"] .skylight-avatar-slot,
+html[data-skylight-variant="v3"] .skylight-avatar-slot,
+html[data-skylight-variant="v1"] .skylight-create-bg,
+html[data-skylight-variant="v3"] .skylight-create-bg,
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-avatar-slot,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-avatar-slot,
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-avatar,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-avatar {
+  width: 72px;
+  height: 72px;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-ring,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-ring {
+  display: none;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-story-label]:not(.read) .skylight-avatar-slot::after,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label]:not(.read) .skylight-avatar-slot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 86px;
+  height: 86px;
+  border: 3.5px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #0094ff 0%, #20d5ec 47.8362%, #00ffa3 100%) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after {
+  width: 86px;
+  height: 86px;
+}
+html[data-skylight-variant="v1"] .skylight-plus-badge,
+html[data-skylight-variant="v3"] .skylight-plus-badge,
+html[data-skylight-variant="v1"] .skylight-plus-stroke,
+html[data-skylight-variant="v3"] .skylight-plus-stroke {
+  width: 20px;
+  height: 20px;
+}
+html[data-skylight-variant="v1"] .skylight-item.read .skylight-avatar-slot::before,
+html[data-skylight-variant="v3"] .skylight-item.read .skylight-avatar-slot::before {
+  width: 86px;
+  height: 86px;
+  border-width: 3.5px;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-label,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-label {
+  max-width: 72px;
+}
+html[data-skylight-variant="v1"] .skylight-label,
+html[data-skylight-variant="v3"] .skylight-label {
+  max-width: 72px;
+}
+
+/* V1/V3 Create — Figma 3461:43970: 72px slot (same as stories), 86px ring overflows, label gap from avatar */
+html[data-skylight-variant="v1"] .skylight-item[data-skylight-action="create"] .skylight-avatar-slot,
+html[data-skylight-variant="v3"] .skylight-item[data-skylight-action="create"] .skylight-avatar-slot {
+  overflow: visible;
+}
+html[data-skylight-variant="v1"] .skylight-create-ring,
+html[data-skylight-variant="v3"] .skylight-create-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 86px;
+  height: 86px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+  display: none;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-create-ring,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-create-ring {
+  display: block;
+}
+html[data-skylight-variant="v1"] .skylight-create-body,
+html[data-skylight-variant="v3"] .skylight-create-body {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+html[data-skylight-variant="v1"] .skylight-create-photo,
+html[data-skylight-variant="v3"] .skylight-create-photo {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  z-index: 1;
+}
+html[data-skylight-variant="v1"] .skylight-create-base,
+html[data-skylight-variant="v3"] .skylight-create-base {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  pointer-events: none;
+  z-index: 2;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-skylight-action="create"] .skylight-plus-badge,
+html[data-skylight-variant="v3"] .skylight-item[data-skylight-action="create"] .skylight-plus-badge {
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: none;
+}
+html[data-skylight-variant="v1"] .skylight-create-badge-icon,
+html[data-skylight-variant="v3"] .skylight-create-badge-icon {
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  height: 20px;
+  z-index: 2;
+}
+html[data-skylight-variant="v1"] .skylight-create-badge-stroke,
+html[data-skylight-variant="v3"] .skylight-create-badge-stroke {
+  position: absolute;
+  inset: -15%;
+  width: auto;
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+  z-index: 3;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-create-ring,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-create-ring {
+  display: none;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after {
+  display: none;
+}
+/* Create read gray ring follows border toggle — off means no ring at all */
+.skylight-item.read[data-skylight-action="create"] .skylight-avatar-slot::before {
+  display: none;
+}
+.create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-avatar-slot::before {
+  display: block;
+}
+.create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-avatar-slot::after {
+  display: none;
+}
+
 .skylight-label {
   font-size: 12px;
   line-height: 16px;
@@ -741,6 +938,17 @@ body.is-gesture-active ::selection {
 .inbox-bottom-nav .feed-nav-icon--lite img {
   display: block;
 }
+.feed-nav-cell.has-inbox-tab-dot .feed-nav-icon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fe2c55;
+  pointer-events: none;
+}
 .inbox-bottom-nav .feed-nav-label {
   width: 100%;
   text-align: center;
@@ -826,8 +1034,96 @@ html.variant-embed body.variant-embed {
   z-index: 1;
   pointer-events: auto;
 }
+
+/* V3 Android home screen (exit-to-desktop) */
+.flow-layer-desktop {
+  z-index: 4;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms cubic-bezier(0.33, 0.86, 0.2, 1);
+}
+.flow-layer-desktop.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.desktop-wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.42) 0 8%, transparent 23%),
+    radial-gradient(circle at 78% 12%, rgba(46, 213, 255, 0.52) 0 7%, transparent 25%),
+    radial-gradient(circle at 72% 80%, rgba(255, 68, 132, 0.45) 0 9%, transparent 28%),
+    linear-gradient(160deg, #1b2545 0%, #325d8f 38%, #8b6bd6 68%, #f3778c 100%);
+}
+.desktop-app-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 78px);
+  grid-auto-rows: 82px;
+  justify-content: center;
+  gap: 12px 4px;
+  padding-top: 74px;
+}
+.desktop-app {
+  width: 78px;
+  min-width: 78px;
+  min-height: 82px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.desktop-app:active .desktop-app-icon {
+  transform: scale(0.94);
+}
+.desktop-app-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(12, 20, 42, 0.22);
+  transition: transform 120ms ease;
+}
+.desktop-app-label {
+  max-width: 78px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+  text-align: center;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.46);
+  white-space: nowrap;
+}
+.desktop-app-icon-tiktok {
+  background: #050505;
+}
+.desktop-app-icon-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .phone.feed-mode .status-time,
 .phone.feed-mode .status-bar img {
+  filter: brightness(0) invert(1);
+}
+.phone.desktop-mode .status-time,
+.phone.desktop-mode .status-bar img {
   filter: brightness(0) invert(1);
 }
 .phone.inbox-mode .status-time {
@@ -837,6 +1133,9 @@ html.variant-embed body.variant-embed {
   filter: brightness(0);
 }
 .phone.feed-mode .status-bar {
+  background: transparent;
+}
+.phone.desktop-mode .status-bar {
   background: transparent;
 }
 .phone.inbox-mode .status-bar {
@@ -858,8 +1157,18 @@ html.variant-embed body.variant-embed {
   --system-home-handle: #fff;
   background: #fff;
 }
+.phone.desktop-mode .system-home-indicator {
+  background: transparent;
+}
+.phone.desktop-mode .system-home-indicator-handle {
+  --system-home-handle: #fff;
+  background: #fff;
+}
 .phone.inbox-mode .system-home-indicator {
   background: #fff;
+}
+.variant-v3 .phone.inbox-mode:not(.overlay-dark-mode) .system-home-indicator {
+  box-shadow: 0 -1px 0 #fff;
 }
 .phone.inbox-mode .system-home-indicator-handle {
   --system-home-handle: #161823;
@@ -867,6 +1176,7 @@ html.variant-embed body.variant-embed {
 }
 .phone.overlay-dark-mode .system-home-indicator {
   background: #000;
+  box-shadow: none;
 }
 .phone.overlay-dark-mode .system-home-indicator-handle {
   background: #fff;

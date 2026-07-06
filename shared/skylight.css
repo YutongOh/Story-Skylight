@@ -531,14 +531,7 @@ html, body {
   display: flex; align-items: center; justify-content: center; margin: 0 auto;
 }
 .feed-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: block; }
-.feed-follow {
-  position: absolute;
-  left: 8px;
-  top: 34px;
-  width: 28px;
-  height: 20px;
-  display: block;
-}
+.feed-follow { position: absolute; left: 8px; top: 34px; width: 28px; height: 20px; display: block; }
 .feed-action { width: 62px; position: relative; flex: 0 0 auto; }
 .feed-action-like { height: 59px; }
 .feed-action-comment { height: 65px; }
@@ -1442,7 +1435,7 @@ button.auto-cap-tool { cursor: pointer; }
   font-weight: 500;
   opacity: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 3;
   will-change: opacity, height;
 }
 
@@ -1498,6 +1491,7 @@ body.is-gesture-active ::selection {
   display: flex;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
 }
 .skylight-create-bg {
   width: 64px;
@@ -1505,6 +1499,8 @@ body.is-gesture-active ::selection {
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--inbox-shape-n3);
+  position: relative;
+  z-index: 1;
 }
 .skylight-plus-badge {
   position: absolute;
@@ -1517,9 +1513,30 @@ body.is-gesture-active ::selection {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 3;
 }
-.skylight-plus-icon { width: 10.8px; height: 10.8px; position: absolute; }
-.skylight-plus-stroke { width: 21px; height: 21px; position: absolute; pointer-events: none; }
+.skylight-plus-icon { width: 10.8px; height: 10.8px; position: absolute; z-index: 2; }
+.skylight-plus-stroke { width: 21px; height: 21px; position: absolute; pointer-events: none; z-index: 3; }
+.create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72px;
+  height: 72px;
+  border: 3.5px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #0094ff 0%, #20d5ec 47.8362%, #00ffa3 100%) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
 .skylight-ring {
   width: 72px;
   height: 72px;
@@ -1538,12 +1555,182 @@ body.is-gesture-active ::selection {
 .skylight-item.read .skylight-avatar-slot::before {
   content: "";
   position: absolute;
+  left: 50%;
+  top: 50%;
   width: 72px;
   height: 72px;
   border-radius: 50%;
   border: 2px solid var(--inbox-shape-n2);
   box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  z-index: 0;
 }
+html[data-skylight-variant="v1"] .skylight-row,
+html[data-skylight-variant="v3"] .skylight-row {
+  gap: 22px;
+  padding: 10px 16px;
+}
+html[data-skylight-variant="v1"] .skylight-item,
+html[data-skylight-variant="v3"] .skylight-item {
+  width: 72px;
+}
+html[data-skylight-variant="v1"] .skylight-avatar-slot,
+html[data-skylight-variant="v3"] .skylight-avatar-slot,
+html[data-skylight-variant="v1"] .skylight-create-bg,
+html[data-skylight-variant="v3"] .skylight-create-bg,
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-avatar-slot,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-avatar-slot,
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-avatar,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-avatar {
+  width: 72px;
+  height: 72px;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-ring,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-ring {
+  display: none;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-story-label]:not(.read) .skylight-avatar-slot::after,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label]:not(.read) .skylight-avatar-slot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 86px;
+  height: 86px;
+  border: 3.5px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #0094ff 0%, #20d5ec 47.8362%, #00ffa3 100%) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after {
+  width: 86px;
+  height: 86px;
+}
+html[data-skylight-variant="v1"] .skylight-plus-badge,
+html[data-skylight-variant="v3"] .skylight-plus-badge,
+html[data-skylight-variant="v1"] .skylight-plus-stroke,
+html[data-skylight-variant="v3"] .skylight-plus-stroke {
+  width: 20px;
+  height: 20px;
+}
+html[data-skylight-variant="v1"] .skylight-item.read .skylight-avatar-slot::before,
+html[data-skylight-variant="v3"] .skylight-item.read .skylight-avatar-slot::before {
+  width: 86px;
+  height: 86px;
+  border-width: 3.5px;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-story-label] .skylight-label,
+html[data-skylight-variant="v3"] .skylight-item[data-story-label] .skylight-label {
+  max-width: 72px;
+}
+html[data-skylight-variant="v1"] .skylight-label,
+html[data-skylight-variant="v3"] .skylight-label {
+  max-width: 72px;
+}
+
+/* V1/V3 Create — Figma 3461:43970: 72px slot (same as stories), 86px ring overflows, label gap from avatar */
+html[data-skylight-variant="v1"] .skylight-item[data-skylight-action="create"] .skylight-avatar-slot,
+html[data-skylight-variant="v3"] .skylight-item[data-skylight-action="create"] .skylight-avatar-slot {
+  overflow: visible;
+}
+html[data-skylight-variant="v1"] .skylight-create-ring,
+html[data-skylight-variant="v3"] .skylight-create-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 86px;
+  height: 86px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+  display: none;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-create-ring,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-create-ring {
+  display: block;
+}
+html[data-skylight-variant="v1"] .skylight-create-body,
+html[data-skylight-variant="v3"] .skylight-create-body {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+html[data-skylight-variant="v1"] .skylight-create-photo,
+html[data-skylight-variant="v3"] .skylight-create-photo {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  z-index: 1;
+}
+html[data-skylight-variant="v1"] .skylight-create-base,
+html[data-skylight-variant="v3"] .skylight-create-base {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  pointer-events: none;
+  z-index: 2;
+}
+html[data-skylight-variant="v1"] .skylight-item[data-skylight-action="create"] .skylight-plus-badge,
+html[data-skylight-variant="v3"] .skylight-item[data-skylight-action="create"] .skylight-plus-badge {
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: none;
+}
+html[data-skylight-variant="v1"] .skylight-create-badge-icon,
+html[data-skylight-variant="v3"] .skylight-create-badge-icon {
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  height: 20px;
+  z-index: 2;
+}
+html[data-skylight-variant="v1"] .skylight-create-badge-stroke,
+html[data-skylight-variant="v3"] .skylight-create-badge-stroke {
+  position: absolute;
+  inset: -15%;
+  width: auto;
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+  z-index: 3;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-create-ring,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-create-ring {
+  display: none;
+}
+html[data-skylight-variant="v1"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after,
+html[data-skylight-variant="v3"].create-story-border-enabled .skylight-item[data-skylight-action="create"] .skylight-avatar-slot::after {
+  display: none;
+}
+/* Create read gray ring follows border toggle — off means no ring at all */
+.skylight-item.read[data-skylight-action="create"] .skylight-avatar-slot::before {
+  display: none;
+}
+.create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-avatar-slot::before {
+  display: block;
+}
+.create-story-border-enabled .skylight-item.read[data-skylight-action="create"] .skylight-avatar-slot::after {
+  display: none;
+}
+
 .skylight-label {
   font-size: 12px;
   line-height: 16px;
@@ -1920,6 +2107,34 @@ html.variant-embed body.variant-embed {
   position: absolute;
   inset: 0;
 }
+.flow-layer-feed {
+  background: #000;
+  overflow: hidden;
+  z-index: 1;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.flow-layer-inbox {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 0;
+  pointer-events: none;
+  padding-top: var(--status-h);
+  box-sizing: border-box;
+}
+.flow-layer-feed.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.flow-layer-inbox.is-active {
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* V3 Android home screen (exit-to-desktop) */
 .flow-layer-desktop {
   z-index: 4;
   overflow: hidden;
@@ -1992,40 +2207,6 @@ html.variant-embed body.variant-embed {
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.46);
   white-space: nowrap;
 }
-.desktop-app-icon-photos {
-  background: conic-gradient(from 0deg, #ff4f6d, #ffb84d, #54d86a, #39b7ff, #a36cff, #ff4f6d);
-}
-.desktop-app-icon-messages {
-  background: linear-gradient(180deg, #65e973 0%, #12b748 100%);
-}
-.desktop-app-icon-messages::before {
-  content: "";
-  width: 28px;
-  height: 22px;
-  border-radius: 50%;
-  background: #fff;
-}
-.desktop-app-icon-camera {
-  background: linear-gradient(180deg, #f7f7f9 0%, #b9bdc9 100%);
-}
-.desktop-app-icon-camera::before {
-  content: "";
-  width: 24px;
-  height: 24px;
-  border: 4px solid #313744;
-  border-radius: 50%;
-}
-.desktop-app-icon-music {
-  background: linear-gradient(160deg, #ff5f8f 0%, #8b4dff 100%);
-}
-.desktop-app-icon-music::before {
-  content: "";
-  width: 8px;
-  height: 28px;
-  border-right: 4px solid #fff;
-  border-bottom: 4px solid #fff;
-  transform: skewY(-12deg);
-}
 .desktop-app-icon-tiktok {
   background: #050505;
 }
@@ -2035,54 +2216,7 @@ html.variant-embed body.variant-embed {
   display: block;
   object-fit: cover;
 }
-.desktop-app-icon-mail {
-  background: linear-gradient(180deg, #5fc8ff 0%, #1378ff 100%);
-}
-.desktop-app-icon-mail::before {
-  content: "";
-  width: 30px;
-  height: 20px;
-  border: 3px solid #fff;
-  border-radius: 4px;
-}
-.desktop-app-icon-maps {
-  background: linear-gradient(135deg, #62e27c 0 34%, #fff 34% 46%, #4da3ff 46% 68%, #ffd65c 68%);
-}
-.desktop-app-icon-settings {
-  background: linear-gradient(180deg, #aab2c2 0%, #687181 100%);
-}
-.desktop-app-icon-settings::before {
-  content: "";
-  width: 24px;
-  height: 24px;
-  border: 5px solid #fff;
-  border-radius: 50%;
-}
-.flow-layer-feed {
-  background: #000;
-  overflow: hidden;
-  z-index: 1;
-  opacity: 1;
-  pointer-events: auto;
-}
-.flow-layer-inbox {
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  z-index: 0;
-  pointer-events: none;
-  padding-top: var(--status-h);
-  box-sizing: border-box;
-}
-.flow-layer-feed.is-hidden {
-  opacity: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-.flow-layer-inbox.is-active {
-  z-index: 1;
-  pointer-events: auto;
-}
+
 .phone.feed-mode .status-time,
 .phone.feed-mode .status-bar img {
   filter: brightness(0) invert(1);

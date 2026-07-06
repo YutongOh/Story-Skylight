@@ -16,6 +16,27 @@ RES = ROOT / "playgrounds/src/main/res"
 EFFECT = OUT.parent / "effect-loading-1s"
 ALBUM = OUT.parent / "album-v1234-demo"
 
+REFRESH_NEW_STORIES = [
+    {
+        "label": "Cenis",
+        "avatar": "inbox_avatar_cenis.png",
+        "timeText": "now",
+        "photos": ["lindsey_story_photo_1.png", "lindsey_story_photo_2.png", "lindsey_story_photo_3.png"],
+    },
+    {
+        "label": "Tommy",
+        "avatar": "inbox_avatar_tommy.png",
+        "timeText": "now",
+        "photos": ["maren_story_photo_1.jpg", "maren_story_photo_2.jpg", "maren_story_photo_3.jpg"],
+    },
+    {
+        "label": "summer",
+        "avatar": "inbox_avatar_summer.png",
+        "timeText": "now",
+        "photos": ["rayna_story_photo_1.jpg", "rayna_story_photo_2.jpg", "rayna_story_photo_3.jpg"],
+    },
+]
+
 VARIANTS = {
     "v1": {
         "label": "V1",
@@ -29,6 +50,8 @@ VARIANTS = {
         "lockStoryExpanded": True,
         "chainRefreshAfterExpand": False,
         "inboxTabUnreadDotOnce": True,
+        "addUnreadStoriesOnRefresh": True,
+        "refreshNewStories": REFRESH_NEW_STORIES,
         "releaseHintEnabled": False,
     },
     "v2": {
@@ -38,11 +61,21 @@ VARIANTS = {
         "maxPullDistance": 118,
         "expandOnDrag": True,
         "storySlideEnabled": False,
+        "overlayMaskEnabled": False,
+        "overlayOpacityEnabled": True,
+        "overlayMinOpacity": 0.18,
+        "overlayOpacityStartProgress": 0.2,
+        "overlayOpacityEndProgress": 1,
         "autoExpandOnEnter": True,
+        "autoExpandOncePerRun": True,
+        "inboxTabUnreadDotOnce": True,
         "startExpanded": False,
         "topDownStoryRevealEnabled": False,
         "lockStoryExpanded": False,
         "chainRefreshAfterExpand": True,
+        "allReadAutoCollapseEnabled": True,
+        "allReadCollapsedHintEnabled": True,
+        "allReadCollapsedHintText": "Pull down to view story",
         "releaseHintEnabled": False,
     },
     "v3": {
@@ -52,12 +85,26 @@ VARIANTS = {
         "maxPullDistance": 118,
         "expandOnDrag": True,
         "storySlideEnabled": False,
+        "integratedSlideReveal": True,
+        "integratedMaskEnabled": False,
+        "integratedOpacityEnabled": True,
+        "integratedOpacityMin": 0.18,
+        "integratedOpacityStartProgress": 0.06,
+        "integratedOpacityEndProgress": 0.85,
         "autoExpandOnEnter": True,
+        "autoExpandOncePerRun": True,
+        "inboxTabUnreadDotOnce": True,
         "startExpanded": True,
         "topDownStoryRevealEnabled": True,
         "lockStoryExpanded": False,
         "chainRefreshAfterExpand": True,
+        "addUnreadStoriesOnRefresh": True,
+        "refreshNewStories": REFRESH_NEW_STORIES,
+        "allReadAutoCollapseEnabled": True,
+        "allReadCollapsedHintEnabled": True,
+        "allReadCollapsedHintText": "Pull down to view story",
         "releaseHintEnabled": False,
+        "desktopEnabled": True,
     },
     "v4": {
         "label": "V4",
@@ -66,6 +113,8 @@ VARIANTS = {
         "expandOnDrag": False,
         "storySlideEnabled": True,
         "autoExpandOnEnter": True,
+        "autoExpandOncePerRun": True,
+        "inboxTabUnreadDotOnce": True,
         "startExpanded": False,
         "topDownStoryRevealEnabled": False,
         "lockStoryExpanded": False,
@@ -225,6 +274,11 @@ FIGMA_ASSETS = {
     "icons/feed/figma/story-lite-3401/inbox_me_inactive.svg": "https://www.figma.com/api/mcp/asset/c606f9c4-dfb2-4924-9e25-24385ec5f4da",
     "icons/feed/figma/story-lite-3401/inbox_create.svg": "https://www.figma.com/api/mcp/asset/6f501327-2612-47bc-be46-ecbda80dc5be",
     "inbox/inbox_section_info.png": "https://www.figma.com/api/mcp/asset/a90a41d1-b6f0-4feb-a58d-e89dc658da07",
+    "inbox/inbox_story_create_ring.svg": "https://www.figma.com/api/mcp/asset/be06bba1-c9fe-47be-8811-2322f5b46b88",
+    "inbox/inbox_story_create_base.png": "https://www.figma.com/api/mcp/asset/27e27669-b693-4bb8-839a-e0fa412dadac",
+    "inbox/inbox_story_create_photo.jpg": "https://www.figma.com/api/mcp/asset/43c8b2e6-62b8-4551-a4c7-0820b54c5823",
+    "inbox/inbox_story_create_badge_icon.svg": "https://www.figma.com/api/mcp/asset/a8e1f5f9-9ccf-4776-9e66-378cb27e643a",
+    "inbox/inbox_story_create_badge_stroke.svg": "https://www.figma.com/api/mcp/asset/46de87a9-6cd3-43b2-a5f9-cbdd1c2b0bc1",
 }
 
 SL3401 = "story-lite-3401"
@@ -254,6 +308,16 @@ STORY_PREVIEWS = {
         "avatar": "inbox_story_rayna.png",
         "photos": ["rayna_story_photo_1.jpg", "rayna_story_photo_2.jpg", "rayna_story_photo_3.jpg"],
     },
+    "Create": {
+        "avatar": "inbox_story_create_photo.jpg",
+        "timeText": "now",
+        "photos": [
+            "lindsey_story_photo_1.png",
+            "lindsey_story_photo_2.png",
+            "lindsey_story_photo_3.png",
+            "lindsey_story_photo_4.png",
+        ],
+    },
 }
 
 
@@ -265,7 +329,7 @@ def download_figma_assets() -> None:
     for rel, url in FIGMA_ASSETS.items():
         out = SHARED / "assets" / rel
         out.parent.mkdir(parents=True, exist_ok=True)
-        force = SL3401 in rel or rel.startswith("figma/story_dm_emoji") or rel.startswith("figma/story_preview_like") or rel.startswith("figma/story_preview_share")
+        force = SL3401 in rel or rel.startswith("figma/story_dm_emoji") or rel.startswith("figma/story_preview_like") or rel.startswith("figma/story_preview_share") or rel.startswith("inbox/inbox_story_create")
         if out.is_file() and out.stat().st_size > 100 and not force:
             if rel.endswith(".svg"):
                 _normalize_figma_svg(out)
@@ -296,6 +360,8 @@ def _normalize_figma_svg(path: Path) -> None:
     text = text.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid meet"')
     text = text.replace('fill="var(--fill-0, white)"', 'fill="#ffffff"')
     text = text.replace("fill='var(--fill-0, white)'", "fill='#ffffff'")
+    text = text.replace('stroke="var(--stroke-0, white)"', 'stroke="#ffffff"')
+    text = text.replace("stroke='var(--stroke-0, white)'", "stroke='#ffffff'")
     slug = path.stem.replace(".", "_").replace("-", "_")
     text = text.replace("filter0_dd_0_4", f"filter0_dd_{slug}")
     path.write_text(text, encoding="utf-8")
@@ -405,18 +471,39 @@ def suggested_cell(row: dict) -> str:
     )
 
 
-def skylight_item(label: str, avatar: str, is_create: bool = False) -> str:
-    if is_create:
+FIGMA_CREATE_VARIANTS = ("v1", "v3")
+
+
+def skylight_create_item(variant: str = "") -> str:
+    if variant in FIGMA_CREATE_VARIANTS:
         return (
-            f'<button type="button" class="skylight-item" data-skylight-action="create">'
+            f'<button type="button" class="skylight-item" data-skylight-action="create" data-figma="3461:43970">'
             f'<span class="skylight-avatar-slot">'
-            f'<img class="skylight-create-bg" src="{asset("inbox/inbox_story_create.png")}" alt="" />'
+            f'<img class="skylight-create-ring" src="{asset("inbox/inbox_story_create_ring.svg")}" alt="" />'
+            f'<span class="skylight-create-body">'
+            f'<img class="skylight-create-photo" src="{asset("inbox/inbox_story_create_photo.jpg")}" alt="" />'
+            f'<img class="skylight-create-base" src="{asset("inbox/inbox_story_create_base.png")}" alt="" />'
             f'<span class="skylight-plus-badge">'
-            f'<img class="skylight-plus-icon" src="{asset("inbox/inbox_story_plus.png")}" alt="" />'
-            f'<img class="skylight-plus-stroke" src="{asset("inbox/inbox_story_plus_stroke.png")}" alt="" />'
-            f"</span></span>"
+            f'<img class="skylight-create-badge-icon" src="{asset("inbox/inbox_story_create_badge_icon.svg")}" alt="" />'
+            f'<img class="skylight-create-badge-stroke" src="{asset("inbox/inbox_story_create_badge_stroke.svg")}" alt="" />'
+            f"</span></span></span>"
             f'<span class="skylight-label">Create</span></button>'
         )
+    return (
+        f'<button type="button" class="skylight-item" data-skylight-action="create">'
+        f'<span class="skylight-avatar-slot">'
+        f'<img class="skylight-create-bg" src="{asset("inbox/inbox_story_create.png")}" alt="" />'
+        f'<span class="skylight-plus-badge">'
+        f'<img class="skylight-plus-icon" src="{asset("inbox/inbox_story_plus.png")}" alt="" />'
+        f'<img class="skylight-plus-stroke" src="{asset("inbox/inbox_story_plus_stroke.png")}" alt="" />'
+        f"</span></span>"
+        f'<span class="skylight-label">Create</span></button>'
+    )
+
+
+def skylight_item(label: str, avatar: str, is_create: bool = False, variant: str = "") -> str:
+    if is_create:
+        return skylight_create_item(variant)
     return (
         f'<button type="button" class="skylight-item" data-story-label="{label}">'
         f'<span class="skylight-avatar-slot">'
@@ -426,8 +513,8 @@ def skylight_item(label: str, avatar: str, is_create: bool = False) -> str:
     )
 
 
-def skylight_row_html() -> str:
-    items = [skylight_item("", "", is_create=True)]
+def skylight_row_html(variant: str = "") -> str:
+    items = [skylight_item("", "", is_create=True, variant=variant)]
     items += [skylight_item(s["label"], s["avatar"]) for s in SKYLIGHT_STORIES]
     return f'<div class="skylight-row" id="skylightRow">{"".join(items)}</div>'
 
@@ -470,6 +557,37 @@ def feed_create_btn(*, btn_id: str = "feedCreateBtn", variant: str = "feed") -> 
         f'<span class="feed-nav-create-frame">'
         f'<img src="{a(create_asset)}" alt="" />'
         f"</span></button>"
+    )
+
+
+def desktop_html() -> str:
+    a = asset
+
+    def app(app_id: str, icon: str, label: str, *, extra_cls: str = "", btn_id: str = "") -> str:
+        icon_cls = " desktop-app-icon-tiktok" if app_id == "tiktok" else ""
+        return (
+            f'<button type="button" class="desktop-app{extra_cls}"{btn_id} data-desktop-app="{app_id}">'
+            f'<span class="desktop-app-icon{icon_cls}">'
+            f'<img class="desktop-app-icon-img" src="{a(f"images/{icon}")}" alt="" />'
+            f"</span>"
+            f'<span class="desktop-app-label">{label}</span></button>'
+        )
+
+    buttons = [
+        app("gmail", "desktop_app_gmail.png", "Gmail"),
+        app("google", "desktop_app_google.png", "Google"),
+        app("google-maps", "desktop_app_google_maps.png", "Google Maps"),
+        app("youtube", "desktop_app_youtube.png", "YouTube"),
+        app("tiktok", "tiktok_lite_icon.png", "TikTok Lite", extra_cls=" desktop-app-tiktok", btn_id=' id="desktopTikTokBtn"'),
+        app("instagram", "desktop_app_instagram.png", "Instagram"),
+        app("whatsapp", "desktop_app_whatsapp.png", "WhatsApp"),
+        app("x", "desktop_app_x.png", "X"),
+    ]
+    return (
+        f'<div id="layer-desktop" class="flow-layer flow-layer-desktop" data-route="desktop" aria-hidden="true">'
+        f'<div class="desktop-wallpaper" aria-hidden="true"></div>'
+        f'<div class="desktop-app-grid" aria-label="Desktop apps">{"".join(buttons)}</div>'
+        f"</div>"
     )
 
 
@@ -521,7 +639,7 @@ def feed_html() -> str:
       </div>"""
 
 
-def inbox_layer_html() -> str:
+def inbox_layer_html(variant: str = "") -> str:
     a = asset
     nav = f"""
         <div class="inbox-navbar" data-name="Navigation Bar" data-figma="3391:29146">
@@ -551,7 +669,7 @@ def inbox_layer_html() -> str:
                 <span class="tux-dualball-dot tux-dualball-dot-b"></span>
               </div>
             </div>
-            <div id="storyRevealSlot" class="story-reveal-slot">{skylight_row_html()}</div>
+            <div id="storyRevealSlot" class="story-reveal-slot">{skylight_row_html(variant)}</div>
             <div id="storyReleaseHint" class="story-release-hint" aria-hidden="true">Pull down to view story</div>
             <div id="inboxListLayer" class="inbox-list-layer">
               <div id="inboxScroll" class="inbox-scroll">{inbox_cells_html()}</div>
@@ -734,11 +852,22 @@ def story_preview_html() -> str:
       </div>"""
 
 
+CSS_VERSIONS = {
+    "v1": 50,
+    "v2": 35,
+    "v3": 50,
+    "v4": 33,
+}
+
+
 def variant_html(vid: str, cfg: dict) -> str:
     config = {**MOTION, **cfg, "id": vid, "startOnFeed": True}
     a = asset
+    css_version = CSS_VERSIONS.get(vid, 44)
+    desktop_layer = desktop_html() if vid == "v3" else ""
+    embed_cls = f"variant-embed variant-{vid}" if vid == "v3" else "variant-embed"
     return f"""<!DOCTYPE html>
-<html class="variant-embed" lang="zh-CN">
+<html class="{embed_cls}" lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=360, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -747,9 +876,9 @@ def variant_html(vid: str, cfg: dict) -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../shared/skylight.css?v=38" />
+  <link rel="stylesheet" href="../../shared/skylight.css?v={css_version}" />
 </head>
-<body class="variant-embed">
+<body class="{embed_cls}">
   <div class="phone" id="phone">
     <div class="status-bar" id="statusBar">
       <div class="status-time-wrap"><span class="status-time">8:00</span></div>
@@ -762,8 +891,9 @@ def variant_html(vid: str, cfg: dict) -> str:
       </div>
     </div>
     <div id="flowRoot" class="flow-root">
+      {desktop_layer}
       {feed_html()}
-      {inbox_layer_html()}
+      {inbox_layer_html(vid)}
     </div>
     {story_add_html()}
     {story_preview_html()}
@@ -771,7 +901,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=112"></script>
+  <script src="../../shared/skylight-core.js?v=120"></script>
 </body>
 </html>"""
 
@@ -932,8 +1062,33 @@ def write_preview_shell() -> None:
           </svg>
         </button>
       </div>
+      <div class="tool-group">
+        <button type="button" class="icon-btn" id="createBorderBtn" title="Create 边框：关闭" aria-label="Create 边框" aria-pressed="false">
+          <svg class="toolbar-icon toolbar-icon-outline" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="128" cy="128" r="66"></circle>
+            <path d="M128 96v64"></path>
+            <path d="M96 128h64"></path>
+          </svg>
+        </button>
+      </div>
       <div class="toolbar-spacer"></div>
       <div class="tool-group">
+        <button type="button" class="icon-btn" id="exitBtn" title="退出到桌面" aria-label="退出到桌面" hidden>
+          <svg class="toolbar-icon toolbar-icon-outline" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="48" y="48" width="160" height="120" rx="16"></rect>
+            <path d="M88 208h80"></path>
+            <path d="M128 168v40"></path>
+            <path d="M88 108h80"></path>
+            <path d="M108 88 88 108l20 20"></path>
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="demoBtn" title="演示" aria-label="演示">
+          <svg class="toolbar-icon toolbar-icon-outline" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="40" y="56" width="176" height="112" rx="16"></rect>
+            <path d="M104 200h48"></path>
+            <path d="M128 168v32"></path>
+          </svg>
+        </button>
         <button type="button" class="icon-btn" id="reloadBtn" title="重启演示" aria-label="重启">
           <svg class="toolbar-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
             <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"></path>
@@ -952,7 +1107,7 @@ def write_preview_shell() -> None:
     </main>
   </div>
   <div id="touch-cursor" aria-hidden="true"></div>
-  <script src="preview.js?v=46"></script>
+  <script src="preview.js?v=48"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")
@@ -989,7 +1144,7 @@ def write_preview_shell() -> None:
         "    els.variantSelect.value = variantId;\n    if (els.variantCaption) els.variantCaption.textContent = meta.label;\n    updateUrl(variantId);",
     ).replace(
         "const PREVIEW_BUILD = '3';",
-        "const PREVIEW_BUILD = '154';",
+        "const PREVIEW_BUILD = '156';",
     )
     preview_js_path = OUT / "preview.js"
     if not preview_js_path.is_file():

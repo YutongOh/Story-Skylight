@@ -7,7 +7,7 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '154';
+  const PREVIEW_BUILD = '156';
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
@@ -25,6 +25,7 @@
     zoomOutBtn: document.getElementById('zoomOutBtn'),
     zoomInBtn: document.getElementById('zoomInBtn'),
     zoomFitBtn: document.getElementById('zoomFitBtn'),
+    createBorderBtn: document.getElementById('createBorderBtn'),
     zoomLabel: document.getElementById('zoomLabel'),
     exitBtn: document.getElementById('exitBtn'),
     demoBtn: document.getElementById('demoBtn'),
@@ -40,6 +41,7 @@
   let demoCursorClientX = null;
   let demoCursorClientY = null;
   let activeDemoToken = null;
+  let createBorderEnabled = false;
   const demoWaitCancelers = new Set();
   const DEMO_CANCELLED = 'DEMO_CANCELLED';
 
@@ -167,6 +169,23 @@
     els.demoBtn.setAttribute('aria-label', available ? '演示' : '演示仅 V3 可用');
   }
 
+  function syncCreateBorderButton() {
+    if (!els.createBorderBtn) return;
+    els.createBorderBtn.classList.toggle('is-active', createBorderEnabled);
+    els.createBorderBtn.setAttribute('aria-pressed', createBorderEnabled ? 'true' : 'false');
+    els.createBorderBtn.title = createBorderEnabled ? 'Create 边框：开启' : 'Create 边框：关闭';
+  }
+
+  function syncCreateBorderToFrame() {
+    syncCreateBorderButton();
+    postToFrame('skylight:create-border-enabled', { enabled: createBorderEnabled });
+  }
+
+  function toggleCreateBorder() {
+    createBorderEnabled = !createBorderEnabled;
+    syncCreateBorderToFrame();
+  }
+
   function setVariant(variantId, reload = true) {
     currentVariant = variantId;
     const meta = VARIANTS.find((v) => v.id === variantId);
@@ -182,6 +201,8 @@
     if (reload) {
       els.frame.style.opacity = '0';
       els.frame.src = variantFrameUrl(meta.path);
+    } else {
+      syncCreateBorderToFrame();
     }
   }
 
@@ -308,6 +329,7 @@
   }
 
   function setupPreviewGestures() {
+    let suppressNextClick = false;
     const drag = {
       active: false,
       gestureStarted: false,
@@ -360,6 +382,10 @@
       } else if (point) {
         postToFrame('skylight:preview-click', point);
       }
+      suppressNextClick = true;
+      setTimeout(() => {
+        suppressNextClick = false;
+      }, 0);
       resetDrag();
       try {
         if (pointerId != null) els.phoneWrap.releasePointerCapture(pointerId);
@@ -420,6 +446,16 @@
 
     els.phoneWrap.addEventListener('pointerup', finishDrag);
     els.phoneWrap.addEventListener('pointercancel', finishDrag);
+    els.phoneWrap.addEventListener('click', (e) => {
+      if (demoRunning) return;
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
+      const point = framePointFromClient(e.clientX, e.clientY);
+      if (!point) return;
+      postToFrame('skylight:preview-click', point);
+    }, true);
   }
 
   function wait(ms) {
@@ -700,6 +736,7 @@
   els.zoomOutBtn?.addEventListener('click', zoomOut);
   els.zoomInBtn?.addEventListener('click', zoomIn);
   els.zoomFitBtn?.addEventListener('click', setZoomFit);
+  els.createBorderBtn?.addEventListener('click', toggleCreateBorder);
   els.exitBtn?.addEventListener('click', exitToDesktop);
   els.demoBtn?.addEventListener('click', runDemoSequence);
   els.reloadBtn.addEventListener('click', reloadDemo);
@@ -709,6 +746,7 @@
   }
   els.frame.addEventListener('load', () => {
     els.frame.style.opacity = '1';
+    syncCreateBorderToFrame();
     requestAnimationFrame(applyLayout);
   });
 
