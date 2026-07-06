@@ -1743,3 +1743,9 @@ html.variant-embed body.variant-embed {
   color: #f6f6f6;
   font-weight: 500;
 }
+
+html.skylight-hover-preview,
+html.skylight-hover-preview body {
+  pointer-events: none;
+  user-select: none;
+}

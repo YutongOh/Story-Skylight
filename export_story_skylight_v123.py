@@ -901,7 +901,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=123"></script>
+  <script src="../../shared/skylight-core.js?v=124"></script>
 </body>
 </html>"""
 
@@ -1036,7 +1036,7 @@ def write_preview_shell() -> None:
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Story Skylight V1–V4</title>
-  <link rel="stylesheet" href="preview.css?v=33" />
+  <link rel="stylesheet" href="preview.css?v=34" />
 </head>
 <body>
   <div id="shell">
@@ -1106,11 +1106,17 @@ def write_preview_shell() -> None:
   </div>
   <div id="touch-cursor" aria-hidden="true"></div>
   <div id="hoverDestinationPanel" class="hover-destination-panel" hidden aria-live="polite">
-    <div class="hover-destination-kicker">点击后将进入</div>
-    <div class="hover-destination-title" id="hoverDestinationTitle"></div>
-    <div class="hover-destination-subtitle" id="hoverDestinationSubtitle"></div>
+    <div class="hover-mini-phone" aria-hidden="true">
+      <div class="hover-mini-phone-viewport" id="hoverMiniViewport">
+        <iframe id="hoverMiniFrame" title="Hover destination preview" scrolling="no" tabindex="-1"></iframe>
+      </div>
+    </div>
+    <div class="hover-destination-meta">
+      <div class="hover-destination-title" id="hoverDestinationTitle"></div>
+      <div class="hover-destination-subtitle" id="hoverDestinationSubtitle"></div>
+    </div>
   </div>
-  <script src="preview.js?v=49"></script>
+  <script src="preview.js?v=50"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")

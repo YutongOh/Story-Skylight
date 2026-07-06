@@ -34,6 +34,7 @@
     id: cfg.id || '',
   };
   const CREATE_STORY_LABEL = 'Create';
+  const IS_HOVER_PREVIEW = new URLSearchParams(window.location.search).get('hoverPreview') === '1';
   const IS_V3 = VARIANT.id === 'v3';
   const USE_FIGMA_CREATE = VARIANT.id === 'v1' || VARIANT.id === 'v3';
   const ALL_READ_HINT_IN_FLOW = IS_V3;
@@ -2295,6 +2296,20 @@
     if (showDesktop) setSystemBarMode('desktop');
   }
 
+  function showInboxLayerSilent() {
+    showDesktop = false;
+    applyDesktopLayer();
+    setSystemBarMode('inbox');
+    showFeed = false;
+    els.layerFeed?.classList.add('is-hidden');
+    els.layerInbox?.classList.add('is-active');
+    setBottomNavActive(els.layerFeed, 'inbox');
+    setBottomNavActive(els.layerInbox, 'inbox');
+    syncFeedVideo();
+    reveal.cancelAutoExpand();
+    reveal.applyVisuals();
+  }
+
   function showInboxLayer() {
     if (cfg.inboxTabUnreadDotOnce === true && !inboxTabUnreadDotConsumed) {
       inboxTabUnreadDotConsumed = true;
@@ -2549,22 +2564,50 @@
 
     const storyLabel = el.dataset.storyLabel;
     if (storyLabel) {
-      return { id: `story-${storyLabel}`, title: `${storyLabel} · Story 预览`, subtitle: '' };
+      return {
+        id: `story-${storyLabel}`,
+        title: `${storyLabel} · Story 预览`,
+        subtitle: '',
+        scene: 'story-preview',
+        storyLabel,
+      };
     }
 
     if (el.dataset.skylightAction === 'create') {
       if (isPlusBadgeHitAt(x, y, el)) {
-        return { id: 'create-plus', title: 'Add to Story', subtitle: '拍摄相册' };
+        return {
+          id: 'create-plus',
+          title: 'Add to Story',
+          subtitle: '拍摄相册',
+          scene: 'story-add',
+        };
       }
       if (createStoryBorderEnabled) {
-        return { id: 'create-avatar-preview', title: 'Create · Story 预览', subtitle: '' };
+        return {
+          id: 'create-avatar-preview',
+          title: 'Create · Story 预览',
+          subtitle: '',
+          scene: 'story-preview',
+          storyLabel: CREATE_STORY_LABEL,
+        };
       }
-      return { id: 'create-avatar-add', title: 'Add to Story', subtitle: '拍摄相册' };
+      return {
+        id: 'create-avatar-add',
+        title: 'Add to Story',
+        subtitle: '拍摄相册',
+        scene: 'story-add',
+      };
     }
 
     if (el.dataset.desktopApp) {
       if (el.dataset.desktopApp !== 'tiktok') return null;
-      return { id: 'desktop-tiktok', title: 'TikTok Lite · Feed', subtitle: '' };
+      return {
+        id: 'desktop-tiktok',
+        title: 'TikTok Lite · Feed',
+        subtitle: '',
+        scene: 'feed',
+        feedTab: 'home',
+      };
     }
 
     const nav = el.dataset.feedNav;
@@ -2574,25 +2617,82 @@
 
     if (el.closest('.inbox-bottom-nav')) {
       if (nav === 'home') {
-        return { id: 'inbox-nav-home', title: 'Feed · Home', subtitle: '' };
+        return {
+          id: 'inbox-nav-home',
+          title: 'Feed · Home',
+          subtitle: '',
+          scene: 'feed',
+          feedTab: 'home',
+        };
       }
       if (nav === 'inbox') {
-        return { id: 'inbox-nav-inbox', title: 'Inbox', subtitle: '' };
+        return {
+          id: 'inbox-nav-inbox',
+          title: 'Inbox',
+          subtitle: '',
+          scene: 'inbox',
+        };
       }
       return null;
     }
 
     if (el.closest('.feed-bottom-nav')) {
       if (nav === 'inbox') {
-        return { id: 'feed-nav-inbox', title: 'Inbox', subtitle: '' };
+        return {
+          id: 'feed-nav-inbox',
+          title: 'Inbox',
+          subtitle: '',
+          scene: 'inbox',
+        };
       }
       const tabLabel = navLabels[nav];
       if (tabLabel) {
-        return { id: `feed-nav-${nav}`, title: `Feed · ${tabLabel}`, subtitle: '' };
+        return {
+          id: `feed-nav-${nav}`,
+          title: `Feed · ${tabLabel}`,
+          subtitle: '',
+          scene: 'feed',
+          feedTab: nav,
+        };
       }
     }
 
     return null;
+  }
+
+  function prepareHoverPreviewBase() {
+    showDesktop = false;
+    applyDesktopLayer();
+    showAlbum = false;
+    clearEffectCoverTimer();
+    closeAlbum();
+    closeStoryAdd({ instant: true });
+    closeStoryPreview({ instant: true });
+  }
+
+  function applyHoverDestinationPreview(payload = {}) {
+    prepareHoverPreviewBase();
+    if (payload.createBorderEnabled != null) {
+      setCreateStoryBorderEnabled(!!payload.createBorderEnabled);
+    }
+    const scene = payload.scene;
+    if (scene === 'story-preview' && payload.storyLabel) {
+      showInboxLayerSilent();
+      const previewOptions = { instant: true, markViewed: false };
+      if (payload.storyLabel === CREATE_STORY_LABEL) {
+        previewOptions.data = createStoryPreviewData();
+      }
+      openStoryPreview(payload.storyLabel, previewOptions);
+    } else if (scene === 'story-add') {
+      showInboxLayerSilent();
+      openStoryAdd({ instant: true });
+    } else if (scene === 'inbox') {
+      showInboxLayerSilent();
+    } else if (scene === 'feed') {
+      showFeedLayer({ instant: true });
+      if (payload.feedTab) setBottomNavActive(els.layerFeed, payload.feedTab);
+    }
+    window.parent.postMessage({ type: 'skylight:hover-preview-ready' }, '*');
   }
 
   function handleCreateItemClick(event, btn) {
@@ -2724,9 +2824,13 @@
     showPreviewPhoto(label, 0);
     setOverlayDarkMode(true);
     els.storyPreview.hidden = false;
-    requestAnimationFrame(() => els.storyPreview.classList.add('visible'));
-    pendingViewedTimer = setTimeout(commitPendingStoryViewed, MOTION.previewEnterMs + 40);
-    runPreviewProgress(data.photos.length);
+    if (options.instant) {
+      els.storyPreview.classList.add('visible');
+    } else {
+      requestAnimationFrame(() => els.storyPreview.classList.add('visible'));
+      pendingViewedTimer = setTimeout(commitPendingStoryViewed, MOTION.previewEnterMs + 40);
+      runPreviewProgress(data.photos.length);
+    }
   }
 
   function openCreateStoryPreview() {
@@ -2735,27 +2839,41 @@
     });
   }
 
-  function closeStoryPreview() {
+  function closeStoryPreview(options = {}) {
     stopPreviewProgress();
-    commitPendingStoryViewed();
+    if (!options.instant) commitPendingStoryViewed();
     previewState.data = null;
     els.storyPreview?.classList.remove('visible');
+    if (options.instant) {
+      if (els.storyPreview) els.storyPreview.hidden = true;
+      setOverlayDarkMode(false);
+      return;
+    }
     setOverlayDarkMode(false);
     setTimeout(() => {
       if (els.storyPreview) els.storyPreview.hidden = true;
     }, MOTION.previewExitMs);
   }
 
-  function openStoryAdd() {
+  function openStoryAdd(options = {}) {
     if (!els.storyAddSheet) return;
     setOverlayDarkMode(true);
     els.storyAddSheet.hidden = false;
+    if (options.instant) {
+      els.storyAddSheet.classList.add('open');
+      return;
+    }
     requestAnimationFrame(() => els.storyAddSheet.classList.add('open'));
   }
 
-  function closeStoryAdd() {
+  function closeStoryAdd(options = {}) {
     if (!els.storyAddSheet) return;
     els.storyAddSheet.classList.remove('open');
+    if (options.instant) {
+      els.storyAddSheet.hidden = true;
+      setOverlayDarkMode(false);
+      return;
+    }
     setOverlayDarkMode(false);
     setTimeout(() => {
       els.storyAddSheet.hidden = true;
@@ -2978,8 +3096,14 @@
     }
 
     reveal.applyVisuals();
-    if (VARIANT.startOnFeed) showFeedLayer();
-    else showInboxLayer();
+    if (IS_HOVER_PREVIEW) {
+      document.documentElement.classList.add('skylight-hover-preview');
+      document.body.classList.add('skylight-hover-preview');
+    } else if (VARIANT.startOnFeed) {
+      showFeedLayer();
+    } else {
+      showInboxLayer();
+    }
     applyDesktopLayer();
     syncFeedVideo();
     syncCreateStoryBorder();
@@ -2990,6 +3114,9 @@
       if (e.data?.type === 'skylight:create-border-enabled') {
         setCreateStoryBorderEnabled(!!e.data.enabled);
       }
+      if (e.data?.type === 'skylight:render-hover-preview') {
+        applyHoverDestinationPreview(e.data);
+      }
       if (e.data?.type === 'skylight:preview-hover') {
         const dest = resolveHoverDestination(Number(e.data.x) || 0, Number(e.data.y) || 0);
         window.parent.postMessage({
@@ -2997,6 +3124,9 @@
           id: dest?.id ?? null,
           title: dest?.title ?? '',
           subtitle: dest?.subtitle ?? '',
+          scene: dest?.scene ?? null,
+          storyLabel: dest?.storyLabel ?? null,
+          feedTab: dest?.feedTab ?? null,
         }, '*');
       }
       if (e.data?.type === 'skylight:preview-click') {

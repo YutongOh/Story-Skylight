@@ -7,9 +7,12 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '157';
+  const PREVIEW_BUILD = '158';
   const HOVER_DWELL_MS = 3000;
   const HOVER_THROTTLE_MS = 80;
+  const HOVER_MINI_SCALE = 0.3;
+  const HOVER_MINI_W = Math.round(FRAME_W * HOVER_MINI_SCALE);
+  const HOVER_MINI_H = Math.round(FRAME_H * HOVER_MINI_SCALE);
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
@@ -37,6 +40,8 @@
     hoverDestinationPanel: document.getElementById('hoverDestinationPanel'),
     hoverDestinationTitle: document.getElementById('hoverDestinationTitle'),
     hoverDestinationSubtitle: document.getElementById('hoverDestinationSubtitle'),
+    hoverMiniViewport: document.getElementById('hoverMiniViewport'),
+    hoverMiniFrame: document.getElementById('hoverMiniFrame'),
   };
 
   let currentVariant = 'v1';
@@ -206,6 +211,10 @@
     if (reload) {
       els.frame.style.opacity = '0';
       els.frame.src = variantFrameUrl(meta.path);
+      if (els.hoverMiniFrame) {
+        els.hoverMiniFrame.dataset.ready = '0';
+        els.hoverMiniFrame.removeAttribute('src');
+      }
     } else {
       syncCreateBorderToFrame();
     }
@@ -345,7 +354,14 @@
       hotspotId: null,
       timerId: null,
       lastSentAt: 0,
+      pendingDest: null,
+      miniVariant: null,
     };
+
+    function hoverMiniFrameSrc(variantId) {
+      const variant = VARIANTS.find((item) => item.id === variantId) || VARIANTS[0];
+      return `${variant.path}?hoverPreview=1`;
+    }
 
     function hideHoverPanel() {
       if (!els.hoverDestinationPanel) return;
@@ -353,6 +369,7 @@
       els.hoverDestinationPanel.hidden = true;
       if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = '';
       if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = '';
+      hover.pendingDest = null;
     }
 
     function clearHoverTimer() {
@@ -364,19 +381,59 @@
       hideHoverPanel();
     }
 
-    function showHoverPanel(title, subtitle) {
-      if (!els.hoverDestinationPanel || demoRunning) return;
-      if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = title || '';
-      if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = subtitle || '';
+    function postHoverPreviewToMini(dest) {
+      if (!els.hoverMiniFrame?.contentWindow) return;
+      els.hoverMiniFrame.contentWindow.postMessage({
+        type: 'skylight:render-hover-preview',
+        scene: dest.scene,
+        storyLabel: dest.storyLabel,
+        feedTab: dest.feedTab,
+        createBorderEnabled,
+      }, '*');
+    }
+
+    function ensureHoverMiniFrame(variantId) {
+      if (!els.hoverMiniFrame) return null;
+      const nextSrc = hoverMiniFrameSrc(variantId);
+      if (hover.miniVariant !== variantId || els.hoverMiniFrame.getAttribute('src') !== nextSrc) {
+        hover.miniVariant = variantId;
+        els.hoverMiniFrame.dataset.ready = '0';
+        els.hoverMiniFrame.src = nextSrc;
+      }
+      return els.hoverMiniFrame;
+    }
+
+    function renderHoverMiniPreview(dest) {
+      if (!els.hoverDestinationPanel || demoRunning || !dest?.scene) return;
+      const frame = ensureHoverMiniFrame(currentVariant);
+      if (!frame) return;
+      hover.pendingDest = dest;
+      const apply = () => postHoverPreviewToMini(dest);
+      if (frame.dataset.ready === '1') {
+        apply();
+      } else {
+        frame.addEventListener('load', () => {
+          frame.dataset.ready = '1';
+          if (hover.pendingDest === dest) apply();
+        }, { once: true });
+      }
+    }
+
+    function showHoverPanel(dest) {
+      if (!els.hoverDestinationPanel || demoRunning || !dest) return;
+      if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = dest.title || '';
+      if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = dest.subtitle || '';
+      renderHoverMiniPreview(dest);
       els.hoverDestinationPanel.hidden = false;
       requestAnimationFrame(() => els.hoverDestinationPanel.classList.add('is-visible'));
     }
 
-    function scheduleHoverReveal(hotspotId, title, subtitle) {
+    function scheduleHoverReveal(dest) {
       if (demoRunning) {
         clearHoverTimer();
         return;
       }
+      const hotspotId = dest?.id || null;
       if (!hotspotId) {
         clearHoverTimer();
         return;
@@ -388,7 +445,7 @@
       hover.timerId = setTimeout(() => {
         hover.timerId = null;
         if (hover.hotspotId === hotspotId) {
-          showHoverPanel(title, subtitle);
+          showHoverPanel(dest);
         }
       }, HOVER_DWELL_MS);
     }
@@ -400,7 +457,14 @@
         clearHoverTimer();
         return;
       }
-      scheduleHoverReveal(hotspotId, e.data.title || '', e.data.subtitle || '');
+      scheduleHoverReveal({
+        id: hotspotId,
+        title: e.data.title || '',
+        subtitle: e.data.subtitle || '',
+        scene: e.data.scene || null,
+        storyLabel: e.data.storyLabel || null,
+        feedTab: e.data.feedTab || null,
+      });
     });
 
     function inFrame(clientX, clientY) {
