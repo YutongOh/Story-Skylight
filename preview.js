@@ -7,8 +7,8 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '158';
-  const HOVER_DWELL_MS = 3000;
+  const PREVIEW_BUILD = '159';
+  const HOVER_DWELL_MS = 1500;
   const HOVER_THROTTLE_MS = 80;
   const HOVER_MINI_SCALE = 0.3;
   const HOVER_MINI_W = Math.round(FRAME_W * HOVER_MINI_SCALE);

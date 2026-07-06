@@ -901,7 +901,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=124"></script>
+  <script src="../../shared/skylight-core.js?v=125"></script>
 </body>
 </html>"""
 
@@ -1116,7 +1116,7 @@ def write_preview_shell() -> None:
       <div class="hover-destination-subtitle" id="hoverDestinationSubtitle"></div>
     </div>
   </div>
-  <script src="preview.js?v=50"></script>
+  <script src="preview.js?v=51"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")

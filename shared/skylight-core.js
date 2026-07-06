@@ -2273,7 +2273,10 @@
     if (!video) return;
     const shouldPlay = !showDesktop && showFeed && !els.layerFeed?.classList.contains('is-hidden');
     if (shouldPlay) {
-      video.play().catch(() => {});
+      video.muted = true;
+      const play = () => video.play().catch(() => {});
+      if (video.readyState >= 2) play();
+      else video.addEventListener('loadeddata', play, { once: true });
     } else {
       video.pause();
     }
@@ -2678,7 +2681,7 @@
     const scene = payload.scene;
     if (scene === 'story-preview' && payload.storyLabel) {
       showInboxLayerSilent();
-      const previewOptions = { instant: true, markViewed: false };
+      const previewOptions = { instant: true, markViewed: false, runProgress: true };
       if (payload.storyLabel === CREATE_STORY_LABEL) {
         previewOptions.data = createStoryPreviewData();
       }
@@ -2691,6 +2694,7 @@
     } else if (scene === 'feed') {
       showFeedLayer({ instant: true });
       if (payload.feedTab) setBottomNavActive(els.layerFeed, payload.feedTab);
+      syncFeedVideo();
     }
     window.parent.postMessage({ type: 'skylight:hover-preview-ready' }, '*');
   }
@@ -2829,6 +2833,8 @@
     } else {
       requestAnimationFrame(() => els.storyPreview.classList.add('visible'));
       pendingViewedTimer = setTimeout(commitPendingStoryViewed, MOTION.previewEnterMs + 40);
+    }
+    if (!options.instant || options.runProgress) {
       runPreviewProgress(data.photos.length);
     }
   }
