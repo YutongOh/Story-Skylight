@@ -136,6 +136,20 @@ select:focus-visible {
   box-shadow: 0 0 0 2px hsl(var(--ring) / 0.28);
 }
 
+button:disabled,
+button.is-unavailable {
+  color: hsl(var(--muted-foreground) / 0.42);
+  background: transparent;
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+button:disabled:hover,
+button.is-unavailable:hover {
+  background: transparent;
+}
+
 .icon-btn {
   width: 30px;
   padding: 0;

@@ -7,7 +7,7 @@
   const TOOLBAR_PHONE_GAP = 24;
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
-  const PREVIEW_BUILD = '153';
+  const PREVIEW_BUILD = '154';
 
   const VARIANTS = [
     { id: 'v1', label: 'V1', path: 'variants/v1/index.html' },
@@ -157,6 +157,16 @@
     return `${url.pathname}${url.search}`;
   }
 
+  function syncDemoButtonAvailability() {
+    if (!els.demoBtn) return;
+    const available = currentVariant === 'v3';
+    els.demoBtn.disabled = !available || demoRunning;
+    els.demoBtn.classList.toggle('is-unavailable', !available);
+    els.demoBtn.classList.toggle('is-active', demoRunning && available);
+    els.demoBtn.title = available ? '演示' : '演示仅 V3 可用';
+    els.demoBtn.setAttribute('aria-label', available ? '演示' : '演示仅 V3 可用');
+  }
+
   function setVariant(variantId, reload = true) {
     currentVariant = variantId;
     const meta = VARIANTS.find((v) => v.id === variantId);
@@ -167,6 +177,7 @@
       els.exitBtn.hidden = variantId !== 'v3';
       els.exitBtn.disabled = variantId !== 'v3';
     }
+    syncDemoButtonAvailability();
     updateUrl(variantId);
     if (reload) {
       els.frame.style.opacity = '0';
@@ -183,8 +194,8 @@
     postToFrame('skylight:preview-gesture-active', { active: false });
     document.body.classList.remove('is-demo-running');
     if (els.demoBtn) {
-      els.demoBtn.disabled = false;
       els.demoBtn.classList.remove('is-active');
+      syncDemoButtonAvailability();
     }
     els.cursor?.classList.remove('visible', 'is-down');
   }
@@ -646,6 +657,10 @@
   }
 
   async function runDemoSequence() {
+    if (currentVariant !== 'v3') {
+      syncDemoButtonAvailability();
+      return;
+    }
     if (demoRunning) return;
     demoRunning = true;
     activeDemoToken = {};
@@ -670,8 +685,8 @@
         demoRunning = false;
         document.body.classList.remove('is-demo-running');
         if (els.demoBtn) {
-          els.demoBtn.disabled = false;
           els.demoBtn.classList.remove('is-active');
+          syncDemoButtonAvailability();
         }
       }
       els.cursor?.classList.remove('is-down');
