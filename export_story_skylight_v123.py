@@ -1127,7 +1127,7 @@ def write_preview_shell() -> None:
   </div>
   <script src="shared/tux-color-resolver.js"></script>
   <script src="shared/tux-typography-resolver.js"></script>
-  <script src="preview-measure.js?v=2"></script>
+  <script src="preview-measure.js?v=3"></script>
   <script src="preview.js?v=52"></script>
 </body>
 </html>"""

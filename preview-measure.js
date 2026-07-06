@@ -14,6 +14,7 @@
       'layer-desktop',
       'skylightRow',
       'storyRevealSlot',
+      'inboxRevealRoot',
       'phone',
       'feedVideo',
     ]);
@@ -25,11 +26,18 @@
       'skylight-row-inner',
       'skylight-row',
       'story-reveal-slot',
+      'inbox-reveal-root',
+      'inbox-list-layer',
       'inbox-scroll',
       'inbox-list',
       'inbox-body',
+      'mode-integrated',
+      'mode-overlay',
+      'whole-page',
+      'gesture-reveal',
       'desktop-wallpaper',
       'story-preview-interaction',
+      'inbox-cell-body',
     ];
     const CONTAINER_SELECTORS = [
       '.skylight-item',
@@ -45,7 +53,6 @@
     const LEAF_SELECTOR = [
       'img',
       '.skylight-label',
-      '.skylight-avatar-slot',
       '.skylight-plus-badge',
       '.skylight-create-body',
       '.skylight-create-ring',
@@ -67,6 +74,8 @@
       '.story-preview-time',
       '.story-progress-seg',
       '.system-home-indicator-handle',
+      '.inbox-cell',
+      '.inbox-cell-title',
     ].join(',');
     const MEASURE_TARGET_SELECTOR = [
       LEAF_SELECTOR,
@@ -79,7 +88,7 @@
       '.feed-avatar-wrap',
       '.inbox-navbar',
       '.inbox-nav-title',
-      '.inbox-story-cell',
+      '.inbox-cell',
       '.inbox-section-title',
       '.story-preview-header',
       '.story-message-bubble',
@@ -128,6 +137,18 @@
       return CONTAINER_SELECTORS.some((sel) => el.matches?.(sel));
     }
 
+    function isOversizedLayout(el, doc, win) {
+      if (!el || el.nodeType !== 1) return true;
+      if (isLayoutShell(el)) return true;
+      if (el.classList?.contains('inbox-reveal-root')) return true;
+      if (el.classList?.contains('inbox-list-layer')) return true;
+      if (el.classList.contains('mode-integrated') || el.classList.contains('mode-overlay')) return true;
+      const phone = doc.querySelector('.phone');
+      const phoneArea = phone ? phone.clientWidth * phone.clientHeight : FRAME_W * FRAME_H;
+      if (elementArea(el) > phoneArea * 0.32 && !isLeafTarget(el, win)) return true;
+      return false;
+    }
+
     function isLeafTarget(el, win) {
       if (!isInspectable(el, win) || isLayoutShell(el)) return false;
       if (el.matches?.(LEAF_SELECTOR)) return true;
@@ -170,15 +191,135 @@
       return el.offsetWidth * el.offsetHeight;
     }
 
-    function pickFromStack(stack, win) {
-      for (const el of stack) {
+    function pickFromStack(stack, win, doc) {
+      const filtered = stack.filter((el) => !isOversizedLayout(el, doc, win));
+      for (const el of filtered) {
         if (isLeafTarget(el, win)) return el;
       }
-      const nonContainers = stack.filter((el) => !isLayoutShell(el) && !isContainer(el));
+      const nonContainers = filtered.filter((el) => !isContainer(el));
       if (nonContainers.length) return nonContainers[0];
-      const containers = stack.filter((el) => !isLayoutShell(el) && isContainer(el));
+      const containers = filtered.filter((el) => isContainer(el));
       if (containers.length) {
         return containers.sort((a, b) => elementArea(a) - elementArea(b))[0];
+      }
+      return null;
+    }
+
+    function readablePseudo(cs) {
+      if (!cs || cs.content === 'none') return null;
+      const border = parseFloat(cs.borderTopWidth) || 0;
+      const width = parseFloat(cs.width) || 0;
+      const height = parseFloat(cs.height) || 0;
+      if (width < 1 || height < 1) return null;
+      const color = readableColor(cs.borderTopColor);
+      const hasGradient = cs.backgroundImage && cs.backgroundImage !== 'none';
+      return { width, height, border, color, hasGradient, backgroundImage: cs.backgroundImage };
+    }
+
+    function pseudoRingRect(slot, pseudo, win) {
+      const parsed = readablePseudo(win.getComputedStyle(slot, pseudo));
+      if (!parsed) return null;
+      const slotRect = slot.getBoundingClientRect();
+      const cx = slotRect.left + slotRect.width / 2;
+      const cy = slotRect.top + slotRect.height / 2;
+      return {
+        left: cx - parsed.width / 2,
+        top: cy - parsed.height / 2,
+        width: parsed.width,
+        height: parsed.height,
+        border: parsed.border,
+        color: parsed.color,
+        hasGradient: parsed.hasGradient,
+        backgroundImage: parsed.backgroundImage,
+      };
+    }
+
+    function pointInRingBand(x, y, ringRect) {
+      if (!ringRect) return false;
+      const cx = ringRect.left + ringRect.width / 2;
+      const cy = ringRect.top + ringRect.height / 2;
+      const dist = Math.hypot(x - cx, y - cy);
+      const outerR = ringRect.width / 2;
+      const innerR = Math.max(0, outerR - (ringRect.border || 3.5) - 1);
+      return dist >= innerR - 1.5 && dist <= outerR + 2;
+    }
+
+    function ringComponentName(storyItem, pseudo) {
+      const label = storyItem.dataset.storyLabel
+        || (storyItem.dataset.skylightAction === 'create' ? 'Create' : 'Story');
+      if (storyItem.dataset.skylightAction === 'create') return `Create · ${label} 头像边框`;
+      if (pseudo === '::before' || storyItem.classList.contains('read')) {
+        return `Story · ${label} 已读边框`;
+      }
+      return `Story · ${label} 头像边框`;
+    }
+
+    function inspectSkylightRing(slot, win, doc, ringRect, storyItem, pseudo) {
+      const { spacing, guides } = computeAroundSpacing(slot, win, doc);
+      const stroke = ringRect.border || 0;
+      return {
+        el: slot,
+        highlightRect: {
+          left: ringRect.left,
+          top: ringRect.top,
+          width: ringRect.width,
+          height: ringRect.height,
+        },
+        name: ringComponentName(storyItem, pseudo),
+        typography: null,
+        color: ringRect.hasGradient ? null : ringRect.color,
+        fill: ringRect.hasGradient ? 'gradient' : null,
+        w: dp(ringRect.width),
+        h: dp(ringRect.height),
+        spacing,
+        spacingGuides: guides,
+        strokeLabel: `${dp(stroke)} dp`,
+      };
+    }
+
+    function tryPickSkylightRing(x, y, doc, win) {
+      const stack = (doc.elementsFromPoint
+        ? doc.elementsFromPoint(x, y)
+        : [doc.elementFromPoint(x, y)]
+      ).filter(Boolean);
+      let slot = stack.find((el) => el.classList?.contains('skylight-avatar-slot'));
+      if (!slot) {
+        slot = stack.map((el) => el.closest?.('.skylight-avatar-slot')).find(Boolean);
+      }
+      if (!slot) return null;
+
+      const storyItem = slot.closest('.skylight-item');
+      if (!storyItem) return null;
+
+      const pseudoOrder = storyItem.classList.contains('read')
+        ? ['::before', '::after']
+        : ['::after', '::before'];
+      for (const pseudo of pseudoOrder) {
+        const ringRect = pseudoRingRect(slot, pseudo, win);
+        if (!ringRect || !pointInRingBand(x, y, ringRect)) continue;
+        if (ringRect.border <= 0 && !ringRect.hasGradient) continue;
+        return inspectSkylightRing(slot, win, doc, ringRect, storyItem, pseudo);
+      }
+
+      const ringImg = slot.querySelector('.skylight-ring, .skylight-create-ring');
+      if (ringImg) {
+        const cs = win.getComputedStyle(ringImg);
+        if (cs.display !== 'none' && cs.visibility !== 'hidden') {
+          const rect = ringImg.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dist = Math.hypot(x - cx, y - cy);
+          const outerR = rect.width / 2;
+          const avatar = slot.querySelector('.skylight-avatar, .skylight-create-photo');
+          const innerR = avatar
+            ? Math.min(avatar.getBoundingClientRect().width, avatar.getBoundingClientRect().height) / 2
+            : outerR - 6;
+          if (dist >= innerR - 1.5 && dist <= outerR + 2 || (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) {
+            const inspected = inspectElement(ringImg, win, doc);
+            inspected.name = ringComponentName(storyItem, 'img');
+            return inspected;
+          }
+        }
       }
       return null;
     }
@@ -210,7 +351,7 @@
       let bestDist = Infinity;
       let bestArea = Infinity;
       nodes.forEach((el) => {
-        if (!isInspectable(el, win) || isLayoutShell(el)) return;
+        if (!isInspectable(el, win) || isOversizedLayout(el, doc, win)) return;
         const rect = el.getBoundingClientRect();
         const slop = snapSlopForTarget(el, win);
         if (
@@ -231,19 +372,23 @@
     }
 
     function pickElement(localX, localY, doc, win) {
+      const ringPick = tryPickSkylightRing(localX, localY, doc, win);
+      if (ringPick) return ringPick;
+
       const rawStack = (doc.elementsFromPoint
         ? doc.elementsFromPoint(localX, localY)
         : [doc.elementFromPoint(localX, localY)]
-      ).filter((el) => isInspectable(el, win));
+      ).filter((el) => isInspectable(el, win) && !isOversizedLayout(el, doc, win));
 
-      const picked = pickFromStack(rawStack, win);
-      if (picked) return picked;
+      const picked = pickFromStack(rawStack, win, doc);
+      if (picked) return inspectElement(picked, win, doc);
 
       const normalized = rawStack.map((el) => normalizeMeasureTarget(el, win)).filter(Boolean);
-      const fallback = pickFromStack(normalized, win);
-      if (fallback) return fallback;
+      const fallback = pickFromStack(normalized, win, doc);
+      if (fallback) return inspectElement(fallback, win, doc);
 
-      return findNearestMeasureTarget(localX, localY, doc, win);
+      const nearest = findNearestMeasureTarget(localX, localY, doc, win);
+      return nearest ? inspectElement(nearest, win, doc) : null;
     }
 
     function toScreenRectFromIframe(r) {
@@ -534,8 +679,7 @@
       });
     }
 
-    function inspectElement(el, win) {
-      const doc = win.document;
+    function inspectElement(el, win, doc) {
       const typography = elementTypography(el, win);
       const color = elementTextColor(el, win);
       const fill = elementFill(el, win);
@@ -576,7 +720,8 @@
     }
 
     function showElementMeasure(data) {
-      const sr = toScreenRectFromIframe(data.el.getBoundingClientRect());
+      const iframeRect = data.highlightRect || data.el.getBoundingClientRect();
+      const sr = toScreenRectFromIframe(iframeRect);
       if (els.measureGapHighlight) els.measureGapHighlight.style.display = 'none';
       if (els.measureHighlight) {
         els.measureHighlight.style.display = 'block';
@@ -592,8 +737,12 @@
       ];
       if (data.typography) rows.push(typographyMeasureRow(data.typography));
       if (data.color) rows.push(colorMeasureRow('颜色', data.color));
+      else if (data.fill === 'gradient') rows.push('<div class="measure-row"><span>颜色</span><strong>gradient</strong></div>');
       else if (data.fill === 'image') rows.push('<div class="measure-row"><span>颜色</span><strong>image</strong></div>');
       else if (data.fill) rows.push(colorMeasureRow('颜色', data.fill));
+      if (data.strokeLabel) {
+        rows.push(`<div class="measure-row"><span>描边</span><strong>${data.strokeLabel}</strong></div>`);
+      }
       if (hasBoxSides(data.spacing)) {
         rows.push(boxMeasureRow('相邻间距', data.spacing.t, data.spacing.r, data.spacing.b, data.spacing.l));
       }
@@ -622,12 +771,12 @@
         hideMeasureUi();
         return;
       }
-      const el = pickElement(point.x, point.y, doc, win);
-      if (!el) {
+      const data = pickElement(point.x, point.y, doc, win);
+      if (!data) {
         hideMeasureUi();
         return;
       }
-      showElementMeasure(inspectElement(el, win));
+      showElementMeasure(data);
     }
 
     function bindPhone() {
