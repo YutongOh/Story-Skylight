@@ -171,12 +171,42 @@
       return measureTargetScore(el, win) > 0;
     }
 
+    function isEffectivelyVisible(el, win) {
+      if (!el || el.nodeType !== 1) return false;
+      let node = el;
+      let opacity = 1;
+      while (node && node.nodeType === 1) {
+        if (node.hasAttribute('hidden')) return false;
+        const cs = win.getComputedStyle(node);
+        if (cs.display === 'none') return false;
+        if (cs.visibility === 'hidden') return false;
+        opacity *= Number(cs.opacity);
+        if (opacity < 0.01) return false;
+        if (node.id === 'phone' || node.classList?.contains('phone')) break;
+        node = node.parentElement;
+      }
+      const rect = el.getBoundingClientRect();
+      return rect.width >= 0.5 && rect.height >= 0.5;
+    }
+
+    function isExposedAtPoint(el, x, y, doc, win) {
+      if (!isEffectivelyVisible(el, win)) return false;
+      const stack = doc.elementsFromPoint
+        ? doc.elementsFromPoint(x, y)
+        : [doc.elementFromPoint(x, y)];
+      return stack.some((hit) => hit && (hit === el || el.contains(hit)));
+    }
+
+    function isExposedAtCenter(el, doc, win) {
+      const rect = el.getBoundingClientRect();
+      return isExposedAtPoint(el, rect.left + rect.width / 2, rect.top + rect.height / 2, doc, win);
+    }
+
     function isInspectable(el, win) {
       if (!el || el.nodeType !== 1) return false;
       if (SKIP_TAGS.has(el.tagName)) return false;
       if (el.classList?.contains('phone')) return false;
-      const cs = win.getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) return false;
+      if (!isEffectivelyVisible(el, win)) return false;
       if (el.offsetWidth < 1 || el.offsetHeight < 1) return false;
       return true;
     }
@@ -254,9 +284,29 @@
       return `Story · ${label} 头像边框`;
     }
 
+    function ringStrokeColor(ringRect) {
+      if (ringRect.hasGradient && ringRect.backgroundImage) {
+        const hexes = extractColorsFromCssValue(ringRect.backgroundImage);
+        if (hexes.length) return hexes.join(' · ');
+      }
+      if (ringRect.color) return cssColorToHex(ringRect.color);
+      return null;
+    }
+
     function inspectSkylightRing(slot, win, doc, ringRect, storyItem, pseudo) {
       const { spacing, guides } = computeAroundSpacing(slot, win, doc);
-      const stroke = ringRect.border || 0;
+      const strokeWidth = ringRect.border || 0;
+      const strokeColor = ringStrokeColor(ringRect);
+      const stroke = strokeWidth > 0 && strokeColor
+        ? {
+          t: strokeWidth,
+          r: strokeWidth,
+          b: strokeWidth,
+          l: strokeWidth,
+          color: strokeColor,
+          uniform: true,
+        }
+        : null;
       return {
         el: slot,
         highlightRect: {
@@ -267,13 +317,13 @@
         },
         name: ringComponentName(storyItem, pseudo),
         typography: null,
-        color: ringRect.hasGradient ? null : ringRect.color,
-        fill: ringRect.hasGradient ? 'gradient' : null,
+        color: null,
+        fill: null,
         w: dp(ringRect.width),
         h: dp(ringRect.height),
         spacing,
         spacingGuides: guides,
-        strokeLabel: `${dp(stroke)} dp`,
+        stroke,
       };
     }
 
@@ -286,10 +336,10 @@
       if (!slot) {
         slot = stack.map((el) => el.closest?.('.skylight-avatar-slot')).find(Boolean);
       }
-      if (!slot) return null;
+      if (!slot || !isEffectivelyVisible(slot, win)) return null;
 
       const storyItem = slot.closest('.skylight-item');
-      if (!storyItem) return null;
+      if (!storyItem || !isEffectivelyVisible(storyItem, win)) return null;
 
       const pseudoOrder = storyItem.classList.contains('read')
         ? ['::before', '::after']
@@ -352,6 +402,7 @@
       let bestArea = Infinity;
       nodes.forEach((el) => {
         if (!isInspectable(el, win) || isOversizedLayout(el, doc, win)) return;
+        if (!isExposedAtCenter(el, doc, win)) return;
         const rect = el.getBoundingClientRect();
         const slop = snapSlopForTarget(el, win);
         if (
@@ -378,7 +429,9 @@
       const rawStack = (doc.elementsFromPoint
         ? doc.elementsFromPoint(localX, localY)
         : [doc.elementFromPoint(localX, localY)]
-      ).filter((el) => isInspectable(el, win) && !isOversizedLayout(el, doc, win));
+      ).filter((el) => isInspectable(el, win)
+        && isExposedAtPoint(el, localX, localY, doc, win)
+        && !isOversizedLayout(el, doc, win));
 
       const picked = pickFromStack(rawStack, win, doc);
       if (picked) return inspectElement(picked, win, doc);
@@ -415,6 +468,184 @@
     function readableColor(raw) {
       if (!raw || raw === 'transparent' || raw === 'rgba(0, 0, 0, 0)') return null;
       return raw;
+    }
+
+    function expandShortHex(hex) {
+      const h = hex.replace('#', '');
+      if (h.length === 3) {
+        return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`.toUpperCase();
+      }
+      if (h.length === 4) {
+        return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`.toUpperCase();
+      }
+      return `#${h.slice(0, 6)}${h.length > 6 ? h.slice(6, 8) : ''}`.toUpperCase();
+    }
+
+    function rgbaToHex(r, g, b, a = 255) {
+      const to2 = (n) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+      const rgb = `#${to2(r)}${to2(g)}${to2(b)}`;
+      if (a >= 255) return rgb;
+      return `${rgb}${to2(a)}`;
+    }
+
+    function parseCssColor(input) {
+      if (!input) return null;
+      const trimmed = input.trim();
+      if (/^#[0-9a-fA-F]{3,8}$/.test(trimmed)) {
+        const hex = expandShortHex(trimmed);
+        const body = hex.slice(1);
+        const r = parseInt(body.slice(0, 2), 16);
+        const g = parseInt(body.slice(2, 4), 16);
+        const b = parseInt(body.slice(4, 6), 16);
+        const a = body.length > 6 ? parseInt(body.slice(6, 8), 16) / 255 : 1;
+        return { r, g, b, a };
+      }
+      const probe = document.createElement('span');
+      probe.style.color = trimmed;
+      document.documentElement.appendChild(probe);
+      const computed = getComputedStyle(probe).color;
+      probe.remove();
+      const m = computed.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/);
+      if (!m) return null;
+      return {
+        r: Number(m[1]),
+        g: Number(m[2]),
+        b: Number(m[3]),
+        a: m[4] !== undefined ? Number(m[4]) : 1,
+      };
+    }
+
+    function cssColorToHex(raw) {
+      if (!raw) return null;
+      const rgba = parseCssColor(raw);
+      if (!rgba) return null;
+      return rgbaToHex(rgba.r, rgba.g, rgba.b, Math.round(rgba.a * 255));
+    }
+
+    function extractColorsFromCssValue(value) {
+      if (!value || value === 'none') return [];
+      const hexes = [];
+      const hexRe = /#[0-9a-fA-F]{3,8}\b/g;
+      let match;
+      while ((match = hexRe.exec(value))) {
+        const hex = cssColorToHex(match[0]);
+        if (hex) hexes.push(hex);
+      }
+      const rgbRe = /rgba?\([^)]+\)|hsla?\([^)]+\)/g;
+      while ((match = rgbRe.exec(value))) {
+        const hex = cssColorToHex(match[0]);
+        if (hex) hexes.push(hex);
+      }
+      return [...new Set(hexes)];
+    }
+
+    function sampleImgColor(img) {
+      try {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        if (!w || !h) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, Math.floor(w / 2), Math.floor(h / 2), 1, 1, 0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        if (a === 0) return null;
+        return rgbaToHex(r, g, b, a);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function strokeDp(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return 0;
+      if (n < 1) return Math.round(n * 10) / 10;
+      return Math.round(n);
+    }
+
+    function parseInsetBoxShadow(boxShadow) {
+      if (!boxShadow || boxShadow === 'none') return null;
+      const layers = boxShadow.split(/,(?![^(]*\))/).map((layer) => layer.trim());
+      for (const layer of layers) {
+        if (!/\binset\b/i.test(layer)) continue;
+        const colorMatch = layer.match(/(rgba?\([^)]+\)|hsla?\([^)]+\)|#[0-9a-fA-F]{3,8})\s*$/i);
+        const nums = layer.match(/-?[\d.]+px/g);
+        if (!colorMatch || !nums || nums.length < 4) continue;
+        const width = parseFloat(nums[3]);
+        const color = colorMatch[1].trim();
+        if (width > 0 && readableColor(color)) {
+          return { width, color };
+        }
+      }
+      return null;
+    }
+
+    function strokeFromBorder(cs) {
+      const sides = ['Top', 'Right', 'Bottom', 'Left'];
+      const widths = sides.map((s) => parseFloat(cs[`border${s}Width`]) || 0);
+      const colors = sides.map((s) => readableColor(cs[`border${s}Color`]));
+      if (!widths.some((w) => w > 0)) return null;
+      const uniqW = [...new Set(widths.map((w) => strokeDp(w)))];
+      const uniqC = [...new Set(colors.filter(Boolean))];
+      return {
+        t: widths[0],
+        r: widths[1],
+        b: widths[2],
+        l: widths[3],
+        color: uniqC.length === 1 ? uniqC[0] : colors.find(Boolean) || colors[0],
+        uniform: uniqW.length === 1,
+      };
+    }
+
+    function detectStroke(el, win) {
+      const cs = win.getComputedStyle(el);
+      const borderStroke = strokeFromBorder(cs);
+      if (borderStroke) return borderStroke;
+
+      const outlineWidth = parseFloat(cs.outlineWidth) || 0;
+      const outlineColor = readableColor(cs.outlineColor);
+      if (outlineWidth > 0 && outlineColor) {
+        return {
+          t: outlineWidth,
+          r: outlineWidth,
+          b: outlineWidth,
+          l: outlineWidth,
+          color: outlineColor,
+          uniform: true,
+        };
+      }
+
+      const selfShadow = parseInsetBoxShadow(cs.boxShadow);
+      if (selfShadow) {
+        return {
+          t: selfShadow.width,
+          r: selfShadow.width,
+          b: selfShadow.width,
+          l: selfShadow.width,
+          color: selfShadow.color,
+          uniform: true,
+        };
+      }
+
+      for (const pseudo of ['::after', '::before']) {
+        const ps = win.getComputedStyle(el, pseudo);
+        if (ps.content === 'none') continue;
+        const shadow = parseInsetBoxShadow(ps.boxShadow);
+        if (shadow) {
+          return {
+            t: shadow.width,
+            r: shadow.width,
+            b: shadow.width,
+            l: shadow.width,
+            color: shadow.color,
+            uniform: true,
+          };
+        }
+        const pseudoBorder = strokeFromBorder(ps);
+        if (pseudoBorder) return pseudoBorder;
+      }
+      return null;
     }
 
     function hasDirectText(el) {
@@ -508,20 +739,32 @@
     }
 
     function elementFill(el, win) {
-      if (elementHasCoverImage(el, win)) return 'image';
       const cs = win.getComputedStyle(el);
+      if (el.tagName === 'IMG' || elementHasCoverImage(el, win)) {
+        const img = el.tagName === 'IMG' ? el : el.querySelector(':scope > img');
+        const sampled = img ? sampleImgColor(img) : null;
+        if (sampled) return sampled;
+      }
       const bgImage = cs.backgroundImage;
-      if (bgImage && bgImage !== 'none' && !/gradient/i.test(bgImage)) return 'image';
+      if (bgImage && bgImage !== 'none') {
+        if (/gradient/i.test(bgImage)) {
+          const hexes = extractColorsFromCssValue(bgImage);
+          if (hexes.length) return hexes.join(' · ');
+        }
+      }
       return readableColor(cs.backgroundColor);
     }
 
     function formatMeasureColor(raw) {
       if (!raw) return null;
-      if (global.TuxColorResolver) {
-        const info = TuxColorResolver.describe(raw);
-        if (info) return { swatch: raw, label: info.label, token: info.token };
+      if (typeof raw === 'string' && raw.includes(' · ') && raw.trim().startsWith('#')) {
+        const first = raw.split(' · ')[0];
+        return { swatch: first, label: raw, token: '' };
       }
-      return { swatch: raw, label: raw, token: '' };
+      const hex = cssColorToHex(raw);
+      if (!hex) return null;
+      const token = global.TuxColorResolver?.describe(raw)?.token || '';
+      return { swatch: raw, label: hex, token };
     }
 
     function colorMeasureRow(label, raw) {
@@ -529,6 +772,17 @@
       if (!info) return '';
       const title = info.token ? ` title="${info.token}"` : '';
       return `<div class="measure-row"><span>${label}</span><strong${title}><span class="measure-swatch" style="background:${info.swatch}"></span><span class="measure-color-label">${info.label}</span></strong></div>`;
+    }
+
+    function strokeMeasureRow(stroke) {
+      if (!stroke) return '';
+      const info = formatMeasureColor(stroke.color);
+      if (!info) return '';
+      const widthHtml = stroke.uniform
+        ? `${strokeDp(stroke.t)} dp`
+        : `<span class="measure-box-sides"><span>↑${strokeDp(stroke.t)}</span><span>→${strokeDp(stroke.r)}</span><span>↓${strokeDp(stroke.b)}</span><span>←${strokeDp(stroke.l)}</span></span>`;
+      const title = info.token ? ` title="${info.token}"` : '';
+      return `<div class="measure-row"><span>描边</span><strong${title}>${widthHtml}<span class="measure-stroke-sep">·</span><span class="measure-swatch" style="background:${info.swatch}"></span><span class="measure-color-label">${info.label}</span></strong></div>`;
     }
 
     function typographyMeasureRow(info) {
@@ -549,14 +803,14 @@
       return box.t > 0 || box.r > 0 || box.b > 0 || box.l > 0;
     }
 
-    function isSpacingReference(el, win, self) {
+    function isSpacingReference(el, win, self, doc) {
       if (!el || el === self) return false;
       if (self.contains(el) || el.contains(self)) return false;
       if (SKIP_TAGS.has(el.tagName)) return false;
       if (el.classList?.contains('phone')) return false;
       if (isLayoutShell(el)) return false;
-      const cs = win.getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) return false;
+      if (!isInspectable(el, win)) return false;
+      if (doc && !isExposedAtCenter(el, doc, win)) return false;
       const r = el.getBoundingClientRect();
       return r.width >= 1 && r.height >= 1;
     }
@@ -566,7 +820,7 @@
       const list = [];
       function add(el) {
         if (!el || seen.has(el)) return;
-        if (!isSpacingReference(el, win, self)) return;
+        if (!isSpacingReference(el, win, self, doc)) return;
         seen.add(el);
         list.push(el);
       }
@@ -683,6 +937,7 @@
       const typography = elementTypography(el, win);
       const color = elementTextColor(el, win);
       const fill = elementFill(el, win);
+      const stroke = detectStroke(el, win);
       const { spacing, guides } = computeAroundSpacing(el, win, doc);
       return {
         el,
@@ -690,6 +945,7 @@
         typography,
         color,
         fill,
+        stroke,
         w: el.offsetWidth,
         h: el.offsetHeight,
         spacing,
@@ -737,12 +993,9 @@
       ];
       if (data.typography) rows.push(typographyMeasureRow(data.typography));
       if (data.color) rows.push(colorMeasureRow('颜色', data.color));
-      else if (data.fill === 'gradient') rows.push('<div class="measure-row"><span>颜色</span><strong>gradient</strong></div>');
-      else if (data.fill === 'image') rows.push('<div class="measure-row"><span>颜色</span><strong>image</strong></div>');
       else if (data.fill) rows.push(colorMeasureRow('颜色', data.fill));
-      if (data.strokeLabel) {
-        rows.push(`<div class="measure-row"><span>描边</span><strong>${data.strokeLabel}</strong></div>`);
-      }
+      const strokeRow = strokeMeasureRow(data.stroke);
+      if (strokeRow) rows.push(strokeRow);
       if (hasBoxSides(data.spacing)) {
         rows.push(boxMeasureRow('相邻间距', data.spacing.t, data.spacing.r, data.spacing.b, data.spacing.l));
       }

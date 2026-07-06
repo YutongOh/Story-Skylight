@@ -538,6 +538,11 @@ body.measure-mode #app-frame {
   letter-spacing: -0.01em;
 }
 
+.measure-stroke-sep {
+  opacity: 0.45;
+  padding: 0 1px;
+}
+
 .measure-box-sides {
   display: inline-flex;
   align-items: center;
