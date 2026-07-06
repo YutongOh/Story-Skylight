@@ -8,7 +8,8 @@
   const PHONE_BORDER_PX = 20;
   const TAP_SLOP = 6;
   const PREVIEW_BUILD = '160';
-  const HOVER_DWELL_MS = 1500;
+  const HOVER_DWELL_MS = 1000;
+  const HOVER_EXIT_MS = 240;
   const HOVER_THROTTLE_MS = 80;
   const HOVER_MINI_SCALE = 0.3;
   const HOVER_MINI_W = Math.round(FRAME_W * HOVER_MINI_SCALE);
@@ -347,6 +348,8 @@
     }, { passive: true });
   }
 
+  let dismissHoverPanel = () => {};
+
   function setupHoverDestinationPreview() {
     if (!els.hoverDestinationPanel) return;
     let isCoarse = false;
@@ -358,6 +361,7 @@
     const hover = {
       hotspotId: null,
       timerId: null,
+      hideFinishTimer: null,
       lastSentAt: 0,
       pendingDest: null,
       miniVariant: null,
@@ -368,14 +372,51 @@
       return `${variant.path}?hoverPreview=1`;
     }
 
-    function hideHoverPanel() {
-      if (!els.hoverDestinationPanel) return;
-      els.hoverDestinationPanel.classList.remove('is-visible');
-      els.hoverDestinationPanel.hidden = true;
+    function finishHidePanel() {
+      if (hover.hideFinishTimer) {
+        clearTimeout(hover.hideFinishTimer);
+        hover.hideFinishTimer = null;
+      }
+      const panel = els.hoverDestinationPanel;
+      if (!panel) return;
+      panel.removeEventListener('transitionend', onHideTransitionEnd);
+      panel.hidden = true;
+      panel.classList.remove('is-hiding');
       if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = '';
       if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = '';
       hover.pendingDest = null;
     }
+
+    function onHideTransitionEnd(e) {
+      if (e.target !== els.hoverDestinationPanel || e.propertyName !== 'opacity') return;
+      finishHidePanel();
+    }
+
+    function hideHoverPanel(immediate = false) {
+      const panel = els.hoverDestinationPanel;
+      if (!panel) return;
+      if (hover.hideFinishTimer) {
+        clearTimeout(hover.hideFinishTimer);
+        hover.hideFinishTimer = null;
+      }
+      panel.removeEventListener('transitionend', onHideTransitionEnd);
+      const wasVisible = panel.classList.contains('is-visible');
+      panel.classList.remove('is-visible');
+      if (!wasVisible || panel.hidden) {
+        finishHidePanel();
+        return;
+      }
+      if (immediate) {
+        finishHidePanel();
+        return;
+      }
+      panel.classList.add('is-hiding');
+      panel.hidden = false;
+      panel.addEventListener('transitionend', onHideTransitionEnd);
+      hover.hideFinishTimer = setTimeout(finishHidePanel, HOVER_EXIT_MS + 60);
+    }
+
+    dismissHoverPanel = hideHoverPanel;
 
     function clearHoverTimer() {
       if (hover.timerId) {
@@ -426,11 +467,19 @@
 
     function showHoverPanel(dest) {
       if (!els.hoverDestinationPanel || demoRunning || !dest) return;
+      const panel = els.hoverDestinationPanel;
+      if (hover.hideFinishTimer) {
+        clearTimeout(hover.hideFinishTimer);
+        hover.hideFinishTimer = null;
+      }
+      panel.removeEventListener('transitionend', onHideTransitionEnd);
+      panel.classList.remove('is-hiding');
       if (els.hoverDestinationTitle) els.hoverDestinationTitle.textContent = dest.title || '';
       if (els.hoverDestinationSubtitle) els.hoverDestinationSubtitle.textContent = dest.subtitle || '';
       renderHoverMiniPreview(dest);
-      els.hoverDestinationPanel.hidden = false;
-      requestAnimationFrame(() => els.hoverDestinationPanel.classList.add('is-visible'));
+      panel.hidden = false;
+      void panel.offsetWidth;
+      requestAnimationFrame(() => panel.classList.add('is-visible'));
     }
 
     function scheduleHoverReveal(dest) {
@@ -870,10 +919,7 @@
     }
     if (demoRunning) return;
     demoRunning = true;
-    if (els.hoverDestinationPanel) {
-      els.hoverDestinationPanel.classList.remove('is-visible');
-      els.hoverDestinationPanel.hidden = true;
-    }
+    dismissHoverPanel(true);
     activeDemoToken = {};
     document.body.classList.add('is-demo-running', 'has-touch-cursor');
     if (els.demoBtn) {
@@ -940,10 +986,7 @@
       FRAME_H,
       onModeChange(active) {
         document.body.classList.toggle('is-measure-running', active);
-        if (active && els.hoverDestinationPanel) {
-          els.hoverDestinationPanel.classList.remove('is-visible');
-          els.hoverDestinationPanel.hidden = true;
-        }
+        if (active) dismissHoverPanel(true);
       },
     });
   }
