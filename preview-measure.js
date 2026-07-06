@@ -23,23 +23,60 @@
       'feed-video',
       'feed-gradient',
       'skylight-row-inner',
+      'skylight-row',
       'story-reveal-slot',
       'inbox-scroll',
       'inbox-list',
       'inbox-body',
       'desktop-wallpaper',
+      'story-preview-interaction',
     ];
-    const MEASURE_TARGET_SELECTOR = [
+    const CONTAINER_SELECTORS = [
       '.skylight-item',
+      '.feed-nav-cell',
+      '.feed-nav-create',
+      '.desktop-app',
+      '.feed-action',
+      '.feed-icon-btn',
+      '.feed-tab',
+      '.story-message-bubble',
+      '.inbox-story-cell',
+    ];
+    const LEAF_SELECTOR = [
+      'img',
       '.skylight-label',
+      '.skylight-avatar-slot',
       '.skylight-plus-badge',
+      '.skylight-create-body',
+      '.skylight-create-ring',
+      '.skylight-create-photo',
+      '.skylight-create-base',
+      '.skylight-ring',
+      '.skylight-avatar',
+      '.skylight-plus-icon',
+      '.skylight-plus-stroke',
+      '.feed-nav-label',
+      '.feed-nav-icon',
+      '.feed-action-label',
+      '.feed-action-icon',
+      '.feed-avatar',
+      '.feed-avatar-ring',
+      '.desktop-app-label',
+      '.desktop-app-icon',
+      '.story-preview-name',
+      '.story-preview-time',
+      '.story-progress-seg',
+      '.system-home-indicator-handle',
+    ].join(',');
+    const MEASURE_TARGET_SELECTOR = [
+      LEAF_SELECTOR,
+      '.skylight-item',
       '.feed-nav-cell',
       '.feed-nav-create',
       '.feed-tab',
       '.feed-icon-btn',
       '.feed-action',
       '.feed-avatar-wrap',
-      '.feed-follow',
       '.inbox-navbar',
       '.inbox-nav-title',
       '.inbox-story-cell',
@@ -47,21 +84,28 @@
       '.story-preview-header',
       '.story-message-bubble',
       '.story-preview-actions-row button',
-      '.story-progress-seg',
       '.desktop-app',
       '.status-bar',
       '.system-home-indicator',
       '.effect-preset-btn',
     ].join(',');
     const SPACING_REFERENCE_SELECTOR = [
-      MEASURE_TARGET_SELECTOR,
-      '.feed-top-bar',
-      '.feed-bottom-nav',
-      '.inbox-bottom-nav',
-      '.skylight-row',
-      '.story-preview',
-      '.story-add-sheet',
-      '.desktop-app-grid',
+      LEAF_SELECTOR,
+      '.skylight-item',
+      '.feed-nav-cell',
+      '.feed-nav-create',
+      '.feed-tab',
+      '.feed-icon-btn',
+      '.feed-action',
+      '.feed-avatar-wrap',
+      '.inbox-navbar',
+      '.inbox-story-cell',
+      '.inbox-section-title',
+      '.story-preview-header',
+      '.story-message-bubble',
+      '.desktop-app',
+      '.status-bar',
+      '.system-home-indicator',
     ].join(',');
 
     function isLayoutShell(el) {
@@ -80,21 +124,24 @@
       return Boolean(el.closest('.feed-action, .skylight-item, .desktop-app'));
     }
 
+    function isContainer(el) {
+      return CONTAINER_SELECTORS.some((sel) => el.matches?.(sel));
+    }
+
+    function isLeafTarget(el, win) {
+      if (!isInspectable(el, win) || isLayoutShell(el)) return false;
+      if (el.matches?.(LEAF_SELECTOR)) return true;
+      if (el.tagName === 'SPAN' && el.classList.length && !isContainer(el)) return true;
+      return false;
+    }
+
     function measureTargetScore(el, win) {
       if (isLayoutShell(el)) return -1000;
+      if (isLeafTarget(el, win)) return 200;
+      if (isContainer(el)) return 40;
       if (win && isMediaOverlayText(el, win)) return 130;
       const tag = el.tagName;
-      if (el.classList.contains('skylight-item')) return 120;
-      if (el.classList.contains('feed-nav-cell')) return 115;
-      if (el.classList.contains('desktop-app')) return 115;
-      if (el.classList.contains('feed-tab')) return 110;
-      if (el.classList.contains('feed-action')) return 108;
-      if (el.classList.contains('story-message-bubble')) return 105;
-      if (tag === 'BUTTON') return 100;
-      if (el.classList.contains('skylight-label')) return 95;
-      if (el.classList.contains('feed-nav-label')) return 90;
-      if (tag === 'IMG') return 35;
-      if (tag === 'SPAN' && el.textContent.trim()) return 85;
+      if (tag === 'BUTTON') return 30;
       if (tag === 'DIV' && !el.textContent.trim() && el.children.length > 0) return -200;
       return 20;
     }
@@ -114,15 +161,26 @@
     }
 
     function normalizeMeasureTarget(el, win) {
-      if (!el) return null;
-      if (el.tagName === 'IMG') {
-        const host = el.closest(
-          'button, .skylight-item, .feed-nav-cell, .feed-action, .desktop-app, .feed-icon-btn',
-        );
-        if (host && isInspectable(host, win) && !isLayoutShell(host)) return host;
-      }
-      if (isLayoutShell(el)) return null;
+      if (!el || isLayoutShell(el)) return null;
+      if (!isInspectable(el, win)) return null;
       return el;
+    }
+
+    function elementArea(el) {
+      return el.offsetWidth * el.offsetHeight;
+    }
+
+    function pickFromStack(stack, win) {
+      for (const el of stack) {
+        if (isLeafTarget(el, win)) return el;
+      }
+      const nonContainers = stack.filter((el) => !isLayoutShell(el) && !isContainer(el));
+      if (nonContainers.length) return nonContainers[0];
+      const containers = stack.filter((el) => !isLayoutShell(el) && isContainer(el));
+      if (containers.length) {
+        return containers.sort((a, b) => elementArea(a) - elementArea(b))[0];
+      }
+      return null;
     }
 
     function pointerDistanceToRect(x, y, rect) {
@@ -150,6 +208,7 @@
       const nodes = doc.querySelectorAll(MEASURE_TARGET_SELECTOR);
       let best = null;
       let bestDist = Infinity;
+      let bestArea = Infinity;
       nodes.forEach((el) => {
         if (!isInspectable(el, win) || isLayoutShell(el)) return;
         const rect = el.getBoundingClientRect();
@@ -161,8 +220,10 @@
           || localY > rect.bottom + slop
         ) return;
         const dist = pointerDistanceToRect(localX, localY, rect);
-        if (dist < bestDist) {
+        const area = elementArea(el);
+        if (dist < bestDist - 0.5 || (Math.abs(dist - bestDist) <= 0.5 && area < bestArea)) {
           bestDist = dist;
+          bestArea = area;
           best = el;
         }
       });
@@ -175,24 +236,13 @@
         : [doc.elementFromPoint(localX, localY)]
       ).filter((el) => isInspectable(el, win));
 
-      const rawTargets = rawStack.filter((el) => isMeasureTarget(el, win) && !isLayoutShell(el));
-      if (rawTargets.length) {
-        return rawTargets.sort((a, b) => {
-          const scoreDiff = measureTargetScore(b, win) - measureTargetScore(a, win);
-          if (scoreDiff !== 0) return scoreDiff;
-          return a.offsetWidth * a.offsetHeight - b.offsetWidth * b.offsetHeight;
-        })[0];
-      }
+      const picked = pickFromStack(rawStack, win);
+      if (picked) return picked;
 
-      const stack = rawStack.map((el) => normalizeMeasureTarget(el, win)).filter(Boolean);
-      const direct = stack.filter((el) => isMeasureTarget(el, win));
-      if (direct.length) {
-        return direct.sort((a, b) => {
-          const scoreDiff = measureTargetScore(b, win) - measureTargetScore(a, win);
-          if (scoreDiff !== 0) return scoreDiff;
-          return a.offsetWidth * a.offsetHeight - b.offsetWidth * b.offsetHeight;
-        })[0];
-      }
+      const normalized = rawStack.map((el) => normalizeMeasureTarget(el, win)).filter(Boolean);
+      const fallback = pickFromStack(normalized, win);
+      if (fallback) return fallback;
+
       return findNearestMeasureTarget(localX, localY, doc, win);
     }
 
@@ -251,6 +301,25 @@
     }
 
     function elementComponentName(el) {
+      if (el.classList.contains('skylight-ring')) {
+        const story = el.closest('[data-story-label]')?.dataset.storyLabel;
+        return story ? `Story · ${story} 头像环` : 'Story · 头像环';
+      }
+      if (el.classList.contains('skylight-avatar')) {
+        const story = el.closest('[data-story-label]')?.dataset.storyLabel;
+        return story ? `Story · ${story} 头像` : 'Story · 头像';
+      }
+      if (el.classList.contains('skylight-label')) {
+        return `Story · ${el.textContent.trim()} 标签`;
+      }
+      if (el.classList.contains('skylight-avatar-slot')) {
+        if (el.closest('[data-skylight-action="create"]')) return 'Create · 头像区';
+        const story = el.closest('[data-story-label]')?.dataset.storyLabel;
+        return story ? `Story · ${story} 头像区` : 'Story · 头像区';
+      }
+      if (el.classList.contains('skylight-create-ring')) return 'Create · 头像环';
+      if (el.classList.contains('skylight-create-photo')) return 'Create · 头像图';
+      if (el.classList.contains('skylight-plus-badge')) return 'Create · 加号';
       if (el.dataset.name) return el.dataset.name;
       const named = el.closest('[data-name]');
       if (named?.dataset.name && named !== el) return named.dataset.name;
@@ -350,11 +419,18 @@
     function spacingReferences(doc, win, self) {
       const seen = new Set();
       const list = [];
-      doc.querySelectorAll(SPACING_REFERENCE_SELECTOR).forEach((el) => {
-        if (!isSpacingReference(el, win, self) || seen.has(el)) return;
+      function add(el) {
+        if (!el || seen.has(el)) return;
+        if (!isSpacingReference(el, win, self)) return;
         seen.add(el);
         list.push(el);
-      });
+      }
+      doc.querySelectorAll(SPACING_REFERENCE_SELECTOR).forEach(add);
+      let node = self.parentElement;
+      while (node && !node.classList?.contains('phone')) {
+        [...node.children].forEach((child) => add(child));
+        node = node.parentElement;
+      }
       return list;
     }
 
@@ -362,10 +438,18 @@
       return Math.min(a2, b2) - Math.max(a1, b1);
     }
 
+    function overlapRatio(a1, a2, b1, b2) {
+      const overlap = overlapSize(a1, a2, b1, b2);
+      const span = Math.max(1, Math.min(a2 - a1, b2 - b1));
+      return overlap / span;
+    }
+
     function computeAroundSpacing(el, win, doc) {
       const rect = el.getBoundingClientRect();
       const sides = { t: Infinity, r: Infinity, b: Infinity, l: Infinity };
       const guides = { t: null, r: null, b: null, l: null };
+      const eps = 0.5;
+      const minOverlap = 0.2;
 
       function apply(side, distance, guide) {
         if (!Number.isFinite(distance) || distance < 0) return;
@@ -377,49 +461,46 @@
 
       spacingReferences(doc, win, el).forEach((other) => {
         const sr = other.getBoundingClientRect();
-        const vOverlap = overlapSize(rect.top, rect.bottom, sr.top, sr.bottom);
-        const hOverlap = overlapSize(rect.left, rect.right, sr.left, sr.right);
-        const minH = Math.min(rect.width, sr.width) * 0.15;
-        const minV = Math.min(rect.height, sr.height) * 0.15;
+        const vOverlap = overlapRatio(rect.top, rect.bottom, sr.top, sr.bottom);
+        const hOverlap = overlapRatio(rect.left, rect.right, sr.left, sr.right);
 
-        if (vOverlap >= Math.max(4, minV)) {
-          if (sr.right <= rect.left + 0.5) {
-            const gapW = rect.left - sr.right;
-            apply('l', gapW, { left: sr.right, top: Math.max(rect.top, sr.top), width: gapW, height: vOverlap });
-          }
-          if (sr.left >= rect.right - 0.5) {
-            const gapW = sr.left - rect.right;
-            apply('r', gapW, { left: rect.right, top: Math.max(rect.top, sr.top), width: gapW, height: vOverlap });
-          }
+        if (vOverlap >= minOverlap && sr.right <= rect.left + eps) {
+          const gapW = rect.left - sr.right;
+          apply('l', gapW, {
+            left: sr.right,
+            top: Math.max(rect.top, sr.top),
+            width: gapW,
+            height: overlapSize(rect.top, rect.bottom, sr.top, sr.bottom),
+          });
         }
-        if (hOverlap >= Math.max(4, minH)) {
-          if (sr.bottom <= rect.top + 0.5) {
-            const gapH = rect.top - sr.bottom;
-            apply('t', gapH, { left: Math.max(rect.left, sr.left), top: sr.bottom, width: hOverlap, height: gapH });
-          }
-          if (sr.top >= rect.bottom - 0.5) {
-            const gapH = sr.top - rect.bottom;
-            apply('b', gapH, { left: Math.max(rect.left, sr.left), top: rect.bottom, width: hOverlap, height: gapH });
-          }
+        if (vOverlap >= minOverlap && sr.left >= rect.right - eps) {
+          const gapW = sr.left - rect.right;
+          apply('r', gapW, {
+            left: rect.right,
+            top: Math.max(rect.top, sr.top),
+            width: gapW,
+            height: overlapSize(rect.top, rect.bottom, sr.top, sr.bottom),
+          });
+        }
+        if (hOverlap >= minOverlap && sr.bottom <= rect.top + eps) {
+          const gapH = rect.top - sr.bottom;
+          apply('t', gapH, {
+            left: Math.max(rect.left, sr.left),
+            top: sr.bottom,
+            width: overlapSize(rect.left, rect.right, sr.left, sr.right),
+            height: gapH,
+          });
+        }
+        if (hOverlap >= minOverlap && sr.top >= rect.bottom - eps) {
+          const gapH = sr.top - rect.bottom;
+          apply('b', gapH, {
+            left: Math.max(rect.left, sr.left),
+            top: rect.bottom,
+            width: overlapSize(rect.left, rect.right, sr.left, sr.right),
+            height: gapH,
+          });
         }
       });
-
-      const phone = doc.querySelector('.phone');
-      if (phone) {
-        const pr = phone.getBoundingClientRect();
-        if (sides.l === Infinity) {
-          apply('l', rect.left - pr.left, { left: pr.left, top: rect.top, width: rect.left - pr.left, height: rect.height });
-        }
-        if (sides.r === Infinity) {
-          apply('r', pr.right - rect.right, { left: rect.right, top: rect.top, width: pr.right - rect.right, height: rect.height });
-        }
-        if (sides.t === Infinity) {
-          apply('t', rect.top - pr.top, { left: rect.left, top: pr.top, width: rect.width, height: rect.top - pr.top });
-        }
-        if (sides.b === Infinity) {
-          apply('b', pr.bottom - rect.bottom, { left: rect.left, top: rect.bottom, width: rect.width, height: pr.bottom - rect.bottom });
-        }
-      }
 
       return {
         spacing: {
@@ -514,7 +595,7 @@
       else if (data.fill === 'image') rows.push('<div class="measure-row"><span>颜色</span><strong>image</strong></div>');
       else if (data.fill) rows.push(colorMeasureRow('颜色', data.fill));
       if (hasBoxSides(data.spacing)) {
-        rows.push(boxMeasureRow('周围间距', data.spacing.t, data.spacing.r, data.spacing.b, data.spacing.l));
+        rows.push(boxMeasureRow('相邻间距', data.spacing.t, data.spacing.r, data.spacing.b, data.spacing.l));
       }
       renderSpacingGuides(data.spacingGuides, data.spacing);
       els.measurePanel.innerHTML = rows.join('');
