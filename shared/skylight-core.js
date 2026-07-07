@@ -2375,12 +2375,14 @@
     const shouldCollapseAllRead = shouldBackgroundCollapseAllRead();
     const feedLayer = els.layerFeed;
     const instantFeed = options.instant === true;
-    if ((shouldCollapseAllRead || instantFeed) && feedLayer) {
+    const wasFeedVisible = showFeed && !feedLayer?.classList.contains('is-hidden');
+    const syncRouteSwitch = !wasFeedVisible;
+    if ((shouldCollapseAllRead || instantFeed || syncRouteSwitch) && feedLayer) {
       feedLayer.style.transition = 'none';
     }
     showFeed = true;
     feedLayer?.classList.remove('is-hidden');
-    if ((shouldCollapseAllRead || instantFeed) && feedLayer) {
+    if ((shouldCollapseAllRead || instantFeed || syncRouteSwitch) && feedLayer) {
       void feedLayer.offsetHeight;
     }
     els.layerInbox?.classList.remove('is-active');
@@ -2399,7 +2401,7 @@
           feedLayer.style.transition = '';
         });
       }
-    } else if (instantFeed && feedLayer) {
+    } else if ((instantFeed || syncRouteSwitch) && feedLayer) {
       requestAnimationFrame(() => {
         feedLayer.style.transition = '';
       });
@@ -2862,11 +2864,11 @@
     buildProgress(data.photos.length);
     showPreviewPhoto(label, 0);
     setOverlayDarkMode(true);
+    els.storyPreview.classList.add('visible');
     els.storyPreview.hidden = false;
     if (options.instant) {
       els.storyPreview.classList.add('visible');
     } else {
-      requestAnimationFrame(() => els.storyPreview.classList.add('visible'));
       pendingViewedTimer = setTimeout(commitPendingStoryViewed, MOTION.previewEnterMs + 40);
     }
     if (!options.instant || options.runProgress) {
