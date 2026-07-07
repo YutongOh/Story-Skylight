@@ -124,8 +124,22 @@
     els.phone?.classList.toggle('overlay-dark-mode', on);
   }
 
+  function createStoryDisplayLabel() {
+    return createStoryBorderEnabled ? 'Your Story' : CREATE_STORY_LABEL;
+  }
+
+  function syncCreateStoryLabel() {
+    const label = createStoryDisplayLabel();
+    document
+      .querySelectorAll('[data-skylight-action="create"] .skylight-label')
+      .forEach((el) => {
+        el.textContent = label;
+      });
+  }
+
   function syncCreateStoryBorder() {
     document.documentElement.classList.toggle('create-story-border-enabled', createStoryBorderEnabled);
+    syncCreateStoryLabel();
   }
 
   function setCreateStoryBorderEnabled(enabled) {
@@ -2412,6 +2426,7 @@
 
   function renderSkylightCreateItemHtml() {
     const createReadCls = readLabels.has(CREATE_STORY_LABEL) ? ' read' : '';
+    const createLabel = createStoryDisplayLabel();
     if (USE_FIGMA_CREATE) {
       return [
         `<button type="button" class="skylight-item${createReadCls}" data-skylight-action="create" data-figma="3461:43970">`,
@@ -2424,7 +2439,7 @@
         `<img class="skylight-create-badge-icon" src="${ASSET}inbox_story_create_badge_icon.svg" alt="" />`,
         `<img class="skylight-create-badge-stroke" src="${ASSET}inbox_story_create_badge_stroke.svg" alt="" />`,
         `</span></span></span>`,
-        `<span class="skylight-label">Create</span></button>`,
+        `<span class="skylight-label">${createLabel}</span></button>`,
       ].join('');
     }
     return [
@@ -2434,7 +2449,7 @@
       `<span class="skylight-plus-badge">`,
       `<img class="skylight-plus-icon" src="${ASSET}inbox_story_plus.png" alt="" />`,
       `<img class="skylight-plus-stroke" src="${ASSET}inbox_story_plus_stroke.png" alt="" />`,
-      `</span></span><span class="skylight-label">Create</span></button>`,
+      `</span></span><span class="skylight-label">${createLabel}</span></button>`,
     ].join('');
   }
 

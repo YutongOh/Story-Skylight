@@ -901,7 +901,7 @@ def variant_html(vid: str, cfg: dict) -> str:
   </div>
   <script>window.__SKYLIGHT_VARIANT__ = {json.dumps(config, ensure_ascii=False)};
 window.__STORY_PREVIEWS__ = {json.dumps(STORY_PREVIEWS, ensure_ascii=False)};</script>
-  <script src="../../shared/skylight-core.js?v=126"></script>
+  <script src="../../shared/skylight-core.js?v=127"></script>
 </body>
 </html>"""
 
@@ -1105,7 +1105,7 @@ def write_preview_shell() -> None:
         <span>360 × 800</span>
       </div>
       <div id="phone-wrap">
-        <iframe id="app-frame" title="Story Skylight preview" src="variants/v1/index.html" scrolling="no" style="pointer-events: none;"></iframe>
+        <iframe id="app-frame" title="Story Skylight preview" src="variants/v1/index.html?build=161" scrolling="no" style="pointer-events: none;"></iframe>
       </div>
     </main>
   </div>
@@ -1128,7 +1128,7 @@ def write_preview_shell() -> None:
   <script src="shared/tux-color-resolver.js"></script>
   <script src="shared/tux-typography-resolver.js"></script>
   <script src="preview-measure.js?v=5"></script>
-  <script src="preview.js?v=57"></script>
+  <script src="preview.js?v=58"></script>
 </body>
 </html>"""
     (OUT / "preview.html").write_text(preview_html, encoding="utf-8")
@@ -1145,8 +1145,8 @@ def write_preview_shell() -> None:
             '<span id="variantCaption">V1</span>',
             f'<span id="variantCaption">{label}</span>',
         ).replace(
-            'src="variants/v1/index.html"',
-            f'src="variants/{vid}/index.html"',
+            'src="variants/v1/index.html?build=161"',
+            f'src="variants/{vid}/index.html?build=161"',
         )
         (OUT / f"preview-{vid}.html").write_text(variant_preview, encoding="utf-8")
 
@@ -1165,7 +1165,7 @@ def write_preview_shell() -> None:
         "    els.variantSelect.value = variantId;\n    if (els.variantCaption) els.variantCaption.textContent = meta.label;\n    updateUrl(variantId);",
     ).replace(
         "const PREVIEW_BUILD = '3';",
-        "const PREVIEW_BUILD = '156';",
+        "const PREVIEW_BUILD = '161';",
     )
     preview_js_path = OUT / "preview.js"
     if not preview_js_path.is_file():
