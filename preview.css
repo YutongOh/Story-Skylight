@@ -10,6 +10,7 @@
   --ring: 221.2 83.2% 53.3%;
   --stage-bg: #f0f0f0;
   --toolbar-phone-gap: 24px;
+  --toolbar-page-gap: 16px;
 }
 
 * {
@@ -42,13 +43,19 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  max-width: min(96vw, 760px);
+  max-width: calc(100vw - var(--toolbar-page-gap) * 2);
   height: 40px;
   max-height: 40px;
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   gap: 5px;
   padding: 4px 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.94);
@@ -58,12 +65,17 @@ body {
   z-index: 30;
 }
 
+.toolbar::-webkit-scrollbar {
+  display: none;
+}
+
 .toolbar-spacer {
-  flex: 1;
+  flex: 0 0 8px;
   min-width: 8px;
 }
 
 .tool-group {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -78,6 +90,7 @@ body {
 
 button,
 select {
+  flex: 0 0 auto;
   height: 30px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -292,12 +305,7 @@ body.has-touch-cursor #app-frame {
 
 @media (max-width: 640px) {
   .toolbar {
-    width: calc(100vw - 16px);
-    max-width: none;
-  }
-
-  .toolbar-spacer {
-    display: none;
+    max-width: calc(100vw - 16px);
   }
 
   #variantSelect {
